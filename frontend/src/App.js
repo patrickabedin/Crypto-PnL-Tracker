@@ -352,9 +352,7 @@ const CryptoPnLTracker = () => {
   const loadStartingBalances = async () => {
     try {
       setSettingsLoading(true);
-      console.log('Loading starting balances...');
       const response = await axios.get(`${API}/starting-balances`);
-      console.log('Starting balances response:', response.data);
       setStartingBalances(response.data || []);
     } catch (error) {
       console.error('Error loading starting balances:', error);
@@ -366,9 +364,7 @@ const CryptoPnLTracker = () => {
 
   const loadCapitalDeposits = async () => {
     try {
-      console.log('Loading capital deposits...');
       const response = await axios.get(`${API}/capital-deposits`);
-      console.log('Capital deposits response:', response.data);
       setCapitalDeposits(response.data || []);
     } catch (error) {
       console.error('Error loading capital deposits:', error);
