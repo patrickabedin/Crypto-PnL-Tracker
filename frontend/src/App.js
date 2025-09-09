@@ -1836,7 +1836,9 @@ const CryptoPnLTracker = () => {
                 
                 {/* Add Capital Deposit Form */}
                 <div className="border-t pt-6">
-                  <h4 className="text-md font-medium text-gray-800 mb-3">Add New Capital Deposit</h4>
+                  <h4 className="text-md font-medium text-gray-800 mb-3">
+                    {editingCapitalDeposit ? 'Edit Capital Deposit' : 'Add New Capital Deposit'}
+                  </h4>
                   <form onSubmit={handleAddCapitalDeposit} className="p-4 border border-gray-200 rounded-xl">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
@@ -1872,9 +1874,16 @@ const CryptoPnLTracker = () => {
                         />
                       </div>
                     </div>
-                    <button type="submit" className="mt-4 btn-primary w-full md:w-auto">
-                      Add Capital Deposit
-                    </button>
+                    <div className="mt-4 flex space-x-3">
+                      <button type="submit" className="btn-primary">
+                        {editingCapitalDeposit ? 'Update Capital Deposit' : 'Add Capital Deposit'}
+                      </button>
+                      {editingCapitalDeposit && (
+                        <button type="button" onClick={cancelEditingCapitalDeposit} className="btn-secondary">
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   </form>
                 </div>
               </div>
