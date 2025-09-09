@@ -1139,27 +1139,27 @@ async def get_portfolio_stats(current_user: User = Depends(require_auth)):
                 "kpi_progress": {"5k": 0, "10k": 0, "15k": 0}
             }
         
-        # Get total entries count
-        total_entries = await db.pnl_entries.count_documents({})
+        # Get total entries count for this user
+        total_entries = await db.pnl_entries.count_documents({"user_id": current_user.id})
         
-        # Calculate average daily PnL (amount and percentage)
+        # Calculate average daily PnL (amount and percentage) for this user
         pipeline_amount = [
-            {"$match": {"pnl_amount": {"$ne": 0}}},
+            {"$match": {"user_id": current_user.id, "pnl_amount": {"$ne": 0}}},
             {"$group": {"_id": None, "avg_pnl": {"$avg": "$pnl_amount"}}}
         ]
         avg_amount_result = await db.pnl_entries.aggregate(pipeline_amount).to_list(1)
         avg_daily_pnl = avg_amount_result[0]["avg_pnl"] if avg_amount_result else 0
         
         pipeline_percentage = [
-            {"$match": {"pnl_percentage": {"$ne": 0}}},
+            {"$match": {"user_id": current_user.id, "pnl_percentage": {"$ne": 0}}},
             {"$group": {"_id": None, "avg_pnl_pct": {"$avg": "$pnl_percentage"}}}
         ]
         avg_pct_result = await db.pnl_entries.aggregate(pipeline_percentage).to_list(1)
         avg_daily_pnl_percentage = avg_pct_result[0]["avg_pnl_pct"] if avg_pct_result else 0
         
-        # Calculate average monthly PnL percentage
+        # Calculate average monthly PnL percentage for this user
         monthly_pipeline = [
-            {"$match": {"pnl_percentage": {"$ne": 0}}},
+            {"$match": {"user_id": current_user.id, "pnl_percentage": {"$ne": 0}}},
             {"$addFields": {
                 "year": {"$year": {"$dateFromString": {"dateString": "$date"}}},
                 "month": {"$month": {"$dateFromString": {"dateString": "$date"}}}
