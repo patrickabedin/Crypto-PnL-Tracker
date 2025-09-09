@@ -883,7 +883,12 @@ const CryptoPnLTracker = () => {
                   <button onClick={() => { setShowExchangeManager(true); setShowMobileMenu(false); }} className="btn-secondary text-xs py-2">
                     Exchanges
                   </button>
-                  <button onClick={() => { setShowSettingsManager(true); setShowMobileMenu(false); }} className="btn-secondary text-xs py-2">
+                  <button onClick={() => { 
+                    setShowSettingsManager(true); 
+                    setShowMobileMenu(false);
+                    loadStartingBalances();
+                    loadCapitalDeposits();
+                  }} className="btn-secondary text-xs py-2">
                     Settings
                   </button>
                   <button onClick={handleExportCSV} className="btn-secondary text-xs py-2">
