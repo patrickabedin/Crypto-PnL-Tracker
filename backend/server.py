@@ -15,15 +15,8 @@ from decimal import Decimal
 import csv
 import io
 import aiohttp
-import json
 from google.oauth2 import id_token
 from google.auth.transport import requests
-import asyncio
-import base64
-import hmac
-import hashlib
-import time
-import urllib.parse
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
