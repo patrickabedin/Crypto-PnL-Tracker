@@ -44,6 +44,27 @@ body {
   line-height: 1.6;
 }
 
+/* Custom Grid for Heatmap (53 weeks) */
+.grid-cols-53 {
+  display: grid;
+  grid-template-columns: repeat(53, minmax(0, 1fr));
+}
+
+/* Dark Mode CSS Variables */
+:root.dark {
+  --bg-page: #111827;
+  --bg-card: #1f2937;
+  --bg-section: rgba(55, 65, 81, 0.3);
+  
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  
+  --border-light: rgba(249, 250, 251, 0.1);
+  --border-medium: rgba(249, 250, 251, 0.2);
+  --border-strong: rgba(249, 250, 251, 0.3);
+}
+
 .App {
   text-align: left;
 }
