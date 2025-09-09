@@ -1705,7 +1705,7 @@ const CryptoPnLTracker = () => {
         {/* Mobile Entry Cards */}
         <div className="divide-y divide-gray-100 dark:divide-gray-700">
           {entries.slice(0, 10).map((entry, index) => (
-            <div key={entry.id} className={`px-4 py-4 ${index % 2 === 1 ? 'bg-gray-50 dark:bg-gray-700/50' : 'bg-white dark:bg-gray-800'} transition-colors duration-200`}>
+            <div key={entry.id} className={`px-4 py-4 ${entry.pnl_amount >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'} transition-colors duration-200`}>
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white text-sm">
