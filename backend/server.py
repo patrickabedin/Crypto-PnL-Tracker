@@ -818,59 +818,7 @@ async def create_pnl_entry(entry_data: PnLEntryCreate, current_user: User = Depe
 
 
 
-@api_router.post("/exchanges/sync")
-async def sync_exchange_balances(current_user: User = Depends(require_auth), background_tasks: BackgroundTasks = None):
-    """Sync balances from all connected exchanges"""
-    try:
-        # Get current exchanges for this user
-        exchanges = await db.exchanges.find({
-            "user_id": current_user.id,
-            "is_active": True
-        }).to_list(100)
-        
-        sync_results = {}
-        total_balance = 0.0
-        balances = []
-        
-        # Sync each exchange
-        for exchange in exchanges:
-            if exchange["name"] == "kraken":
-                balance_data = await kraken_api.get_account_balance(user_id=current_user.id)
-                if balance_data['success']:
-                    sync_results['kraken'] = {
-                        'success': True,
-                        'balance': balance_data['balance_eur'],
-                        'last_updated': balance_data['last_updated']
-                    }
-                    total_balance += balance_data['balance_eur']
-                    balances.append({
-                        'exchange_id': exchange['id'],
-                        'amount': balance_data['balance_eur']
-                    })
-                else:
-                    sync_results['kraken'] = {
-                        'success': False,
-                        'error': balance_data.get('error', 'Unknown error')
-                    }
-            
-            # TODO: Add Binance and Bitget when you provide their APIs
-            elif exchange["name"] == "binance":
-                sync_results['binance'] = {'success': False, 'error': 'API not configured yet'}
-            elif exchange["name"] == "bitget":
-                sync_results['bitget'] = {'success': False, 'error': 'API not configured yet'}
-        
-        return {
-            'sync_results': sync_results,
-            'suggested_entry': {
-                'date': datetime.utcnow().date().isoformat(),
-                'balances': balances,
-                'total': round(total_balance, 2),
-                'notes': f"Auto-synced at {datetime.utcnow().strftime('%H:%M UTC')}"
-            }
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
 
 @api_router.post("/exchanges/sync")
 async def sync_exchanges(current_user: User = Depends(require_auth)):
