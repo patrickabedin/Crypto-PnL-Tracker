@@ -1219,6 +1219,92 @@ const CryptoPnLTracker = () => {
           </div>
         )}
 
+        {/* Performance Heatmap - GitHub Style */}
+        {showHeatmap && heatmapData.length > 0 && (
+          <div className="mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 transition-colors duration-200">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Performance Heatmap</h3>
+                <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                  <span>Less</span>
+                  <div className="flex space-x-1">
+                    {[0, 1, 2, 3, 4].map(level => (
+                      <div 
+                        key={level}
+                        className="w-3 h-3 rounded-sm"
+                        style={{ backgroundColor: getHeatmapColor(level, darkMode) }}
+                      ></div>
+                    ))}
+                  </div>
+                  <span>More</span>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <div className="min-w-max">
+                  {/* Month Labels */}
+                  <div className="flex mb-2">
+                    <div className="w-6"></div>
+                    {Array.from({length: 12}, (_, i) => {
+                      const month = new Date(2024, i, 1).toLocaleDateString('en', { month: 'short' });
+                      return (
+                        <div key={i} className="flex-1 text-center text-xs text-gray-500 dark:text-gray-400 min-w-20">
+                          {month}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Days Grid */}
+                  <div className="flex">
+                    {/* Day Labels */}
+                    <div className="flex flex-col space-y-1 mr-3">
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
+                        <div key={day} className="h-3 flex items-center text-xs text-gray-500 dark:text-gray-400 w-6">
+                          {i % 2 === 1 ? day : ''}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Heatmap Grid */}
+                    <div className="grid grid-cols-53 gap-1">
+                      {heatmapData.map((day, index) => {
+                        const dayOfWeek = new Date(day.date).getDay();
+                        return (
+                          <div
+                            key={index}
+                            className={`w-3 h-3 rounded-sm cursor-pointer hover:ring-2 hover:ring-blue-400 dark:hover:ring-blue-300 transition-all duration-200`}
+                            style={{ 
+                              backgroundColor: getHeatmapColor(day.level, darkMode),
+                              gridRow: dayOfWeek + 1
+                            }}
+                            title={`${day.date}: ${day.hasEntry ? `${day.pnl > 0 ? '+' : ''}${day.pnl.toFixed(2)}%` : 'No entry'}`}
+                            onClick={() => {
+                              if (day.hasEntry) {
+                                alert(`${day.date}\nDaily PnL: ${day.pnl > 0 ? '+' : ''}${day.pnl.toFixed(2)}%`);
+                              }
+                            }}
+                          ></div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex flex-wrap items-center space-x-4">
+                      <span>📈 Green: Profitable days</span>
+                      <span>🟨 Yellow: Small losses</span>
+                      <span>⚫ Gray: No data / Large losses</span>
+                      <span>💡 Hover for details</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Charts Section - Mobile Optimized */}
         {showCharts && (
           <div className="space-y-6 mb-6">
