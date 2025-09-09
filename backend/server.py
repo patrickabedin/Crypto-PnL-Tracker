@@ -881,7 +881,7 @@ async def sync_exchange_balances(current_user: User = Depends(require_auth), bac
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/exchanges/sync")
+@api_router.post("/exchanges/sync")
 async def sync_exchanges(current_user: dict = Depends(get_current_user)):
     """Sync balances from configured exchanges"""
     try:
