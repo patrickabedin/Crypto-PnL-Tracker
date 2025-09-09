@@ -256,8 +256,6 @@ const CryptoPnLTracker = () => {
     color: '#10B981'
   });
   const [editingKPI, setEditingKPI] = useState(null);
-  const [syncingExchanges, setSyncingExchanges] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState(null);
 
 
   // Configure axios defaults
