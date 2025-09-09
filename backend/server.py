@@ -89,6 +89,46 @@ class PnLEntryUpdate(BaseModel):
     notes: Optional[str] = None
 
 # Helper functions
+async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[User]:
+    """Get current user from session token"""
+    session_token = None
+    
+    # Try to get session token from cookie first
+    session_token = request.cookies.get("session_token")
+    
+    # Fallback to Authorization header
+    if not session_token and credentials:
+        session_token = credentials.credentials
+    
+    if not session_token:
+        return None
+    
+    try:
+        # Find session in database
+        session = await db.user_sessions.find_one({
+            "session_token": session_token,
+            "expires_at": {"$gt": datetime.utcnow()}
+        })
+        
+        if not session:
+            return None
+        
+        # Get user
+        user = await db.users.find_one({"id": session["user_id"]})
+        if not user:
+            return None
+        
+        return User(**user)
+    except Exception as e:
+        logger.error(f"Error getting current user: {e}")
+        return None
+
+async def require_auth(current_user: User = Depends(get_current_user)) -> User:
+    """Require authentication"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return current_user
+
 def calculate_pnl_metrics(current_total: float, previous_total: float) -> Dict[str, float]:
     """Calculate PnL percentage and amount"""
     if previous_total == 0:
