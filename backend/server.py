@@ -898,36 +898,68 @@ async def auto_create_entry_from_sync(
         if existing_entry:
             return {
                 "message": "Entry for today already exists",
-                "existing_entry": existing_entry,
+                "existing_entry_id": existing_entry.get("id", "unknown"),
                 "suggested_balances": balances
             }
         
-        # Create entry data
-        entry_data = PnLEntryCreate(
-            date=today,
-            balances=[DynamicBalance(**balance) for balance in balances],
-            notes=f"Auto-created from real-time sync at {datetime.utcnow().strftime('%H:%M UTC')}"
+        # Create entry manually without Pydantic models to avoid serialization issues
+        entry_id = str(uuid.uuid4())
+        
+        # Get previous entry for PnL calculation
+        previous_entry = await db.pnl_entries.find_one(
+            {
+                "user_id": current_user.id,
+                "date": {"$lt": today.isoformat()}
+            }, 
+            sort=[("date", -1)]
         )
         
-        # Use existing create_pnl_entry logic
-        created_entry = await create_pnl_entry_internal(entry_data, current_user)
+        previous_total = previous_entry["total"] if previous_entry else total_balance
+        
+        # Get user's KPIs
+        user_kpis = await db.kpis.find({
+            "user_id": current_user.id,
+            "is_active": True
+        }).to_list(100)
+        
+        # Calculate metrics
+        pnl_metrics = calculate_pnl_metrics(total_balance, previous_total)
+        kpi_progress = calculate_kpi_progress(total_balance, user_kpis)
+        
+        # Create entry dict directly
+        entry_dict = {
+            "id": entry_id,
+            "user_id": current_user.id,
+            "date": today.isoformat(),
+            "balances": balances,
+            "total": round(total_balance, 2),
+            "pnl_percentage": pnl_metrics["pnl_percentage"],
+            "pnl_amount": pnl_metrics["pnl_amount"],
+            "kpi_progress": kpi_progress,
+            "notes": f"Auto-created from real-time sync at {datetime.utcnow().strftime('%H:%M UTC')}",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        # Insert directly into database
+        await db.pnl_entries.insert_one(entry_dict)
+        
+        # Recalculate PnL for subsequent entries
+        await recalculate_subsequent_entries(today, current_user.id)
         
         return {
             "message": "Entry created successfully from real-time data",
-            "entry": {
-                "id": created_entry["id"],
-                "date": created_entry["date"],
-                "total": created_entry["total"],
-                "pnl_percentage": created_entry["pnl_percentage"],
-                "pnl_amount": created_entry["pnl_amount"],
-                "notes": created_entry["notes"]
-            },
+            "entry_id": entry_id,
             "total_balance": round(total_balance, 2),
+            "pnl_percentage": pnl_metrics["pnl_percentage"],
+            "pnl_amount": pnl_metrics["pnl_amount"],
             "synced_exchanges": len(balances)
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error in auto_create_entry_from_sync: {e}")
+        raise HTTPException(status_code=500, detail=f"Error creating entry: {str(e)}")
 
 # Internal function for creating entries (extracted from the main endpoint)
 async def create_pnl_entry_internal(entry_data: PnLEntryCreate, current_user: User):
