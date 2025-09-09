@@ -11,7 +11,7 @@ import time
 import sys
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://crypto-pnl-tracker.preview.emergentagent.com/api"
+BACKEND_URL = "https://crypto-profit-dash-1.preview.emergentagent.com/api"
 
 class CryptoPnLTester:
     def __init__(self):

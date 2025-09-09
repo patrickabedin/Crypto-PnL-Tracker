@@ -1,0 +1,117 @@
+<analysis>
+The previous AI engineer successfully transformed a simple crypto PnL tracker concept into a feature-rich, professional-grade application. Initial work involved building core PnL tracking with a React frontend, FastAPI backend, and MongoDB, replicating Excel functionality. Subsequent iterations added interactive charts, data export, dynamic exchange management, and sophisticated monthly/yearly performance analytics. A major enhancement was the integration of secure Google OAuth authentication and a mobile-first responsive design, followed by dynamic KPI management. The application was then fully whitelabeled. The most recent focus has been on real-time Kraken API integration, addressing complex Pydantic serialization issues in the backend, and implementing user-specific API key storage. The current challenge is debugging the incorrect balance display and data not rendering after successful auto-entry creation.
+</analysis>
+
+<product_requirements>
+The user initially requested a crypto daily PnL performance tracker to input wins/losses from exchanges and calculate profit/loss in absolute and percentage terms. This evolved into a comprehensive application, replicating Excel functionality including daily balance tracking for multiple exchanges (Kraken, Bitget, Binance), automatic PnL calculations, KPI progress tracking (5K, 10K, 15K goals), color-coded performance, notes, and historical data view.
+
+Further enhancements requested and implemented include:
+- An Avg Daily PnL % card on the dashboard.
+- Interactive charts (portfolio timeline, exchange breakdown, daily PnL performance).
+- CSV export functionality.
+- An Avg Monthly PnL % card and monthly/yearly performance tracking (best/worst months).
+- Dynamic exchange management (add/remove exchanges).
+- Google OAuth authentication and a mobile-first responsive design.
+- Dynamic KPI management (add/edit/delete custom goals).
+- Whitelabeling (removal of all Emergent branding).
+- Real-time API integration for Kraken, with secure API key storage and auto-entry creation.
+</product_requirements>
+
+<key_technical_concepts>
+- **Full-stack Architecture**: React (frontend), FastAPI (backend), MongoDB (database).
+- **Styling**: Tailwind CSS, custom CSS adhering to strict design guidelines.
+- **Frontend Libraries**: Chart.js for data visualization,  for direct Google OAuth.
+- **Backend Libraries**: , ,  for Kraken API, , , ,  for authentication.
+- **Data Handling**: Pydantic models, MongoDB ObjectId serialization, UUIDs for IDs.
+- **Authentication**: Google OAuth, secure cookie-based sessions, user data isolation.
+- **Environment Management**:  files for , , .
+</key_technical_concepts>
+
+<code_architecture>
+
+
+-   **/app/backend/server.py**:
+    -   **Importance**: Main FastAPI application handling all backend logic, API endpoints, database interactions, and integrations.
+    -   **Changes Made**:
+        -   Initial setup for PnL entry CRUD, KPI tracking, and basic stats.
+        -   Added endpoints for charts and CSV export.
+        -   Implemented dynamic exchange management () with CRUD operations.
+        -   Added endpoints for monthly/yearly performance analytics.
+        -   Integrated Google OAuth authentication, including user registration, login, logout, and token verification.
+        -   Protected existing endpoints with authentication dependencies and user data filtering.
+        -   Implemented dynamic KPI management () with CRUD operations.
+        -   Integrated Kraken API client, including endpoints for real-time balance fetching (), general exchange sync (), and auto-entry creation ().
+        -   Added API key management endpoints () for users to store their exchange credentials securely.
+        -   Multiple fixes for MongoDB ObjectId serialization errors, especially in auto-entry creation and data retrieval.
+        -   Adjusted balance calculation logic with conservative prices and minimum balance filters.
+        -   Removed Emergent branding references from comments.
+
+-   **/app/backend/.env**:
+    -   **Importance**: Stores backend environment variables like  and .
+    -   **Changes Made**: Updated with the actual  and  for direct Google OAuth.
+
+-   **/app/frontend/src/App.js**:
+    -   **Importance**: Main React component, rendering the entire application UI and handling frontend logic, state management, and API calls.
+    -   **Changes Made**:
+        -   Initial UI for PnL tracking, entries, and KPI progress.
+        -   Added UI for Avg Daily PnL % card, interactive charts (using Chart.js), and CSV export button.
+        -   Implemented dynamic exchange management UI (modal for adding/removing exchanges).
+        -   Added Avg Monthly PnL % card and UI for monthly/yearly performance view.
+        -   Integrated Google OAuth login screen, session management, and logout functionality.
+        -   Implemented mobile-first responsive design, including mobile menu, floating add button, and touch optimizations.
+        -   Added dynamic KPI management UI (modal for adding/editing/deleting KPIs, updating progress bars).
+        -   Implemented real-time sync button for Kraken, status indicator, and prompt for auto-entry creation.
+        -   Removed Emergent branding from UI elements and text.
+        -   Numerous state management and UI updates to adapt to dynamic data and authentication.
+        -   Fixes for ESLint errors and undefined functions.
+
+-   **/app/frontend/src/App.css**:
+    -   **Importance**: Contains global and component-specific styles, primarily using Tailwind CSS and custom design guidelines.
+    -   **Changes Made**: Incorporated custom design guidelines for colors, gradients, buttons, cards, typography, and responsive layouts.
+
+-   **/app/frontend/public/index.html**:
+    -   **Importance**: The main HTML file for the React application, serving as the entry point and including meta tags and external scripts.
+    -   **Changes Made**:
+        -   Removed Made with Emergent badge.
+        -   Updated page title to Crypto PnL Tracker and meta description.
+        -   Integrated Google JavaScript API for direct Google OAuth.
+
+-   **/app/frontend/.env**:
+    -   **Importance**: Stores frontend environment variables like  and .
+    -   **Changes Made**: Updated with the actual  for direct Google OAuth.
+
+-   **/app/frontend/package.json**:
+    -   **Importance**: Manages frontend dependencies and scripts.
+    -   **Changes Made**: Added , , and updated package name from frontend to crypto-pnl-tracker and version to 1.0.0.
+
+-   **/app/backend/requirements.txt**:
+    -   **Importance**: Manages backend Python dependencies.
+    -   **Changes Made**: Added , , , , , , .
+
+-   **/app/README.md**:
+    -   **Importance**: Project documentation.
+    -   **Changes Made**: Updated to reflect the whitelabeled Crypto PnL Tracker application.
+
+-   **/app/GOOGLE_OAUTH_SETUP.md**:
+    -   **Importance**: Provides instructions for setting up Google OAuth Client ID in Google Cloud Console.
+    -   **Changes Made**: Created to guide the user through the Google OAuth setup process.
+</code_architecture>
+
+<pending_tasks>
+- Add the frontend interface for User API Key Management, allowing users to add, view, update, and remove their exchange API keys.
+- Debug the issue where the synced balance is displayed as €0 and recent entries are not appearing in the frontend despite auto-entry creation working.
+</pending_tasks>
+
+<current_work>
+Currently, the application has successfully integrated real-time Kraken API functionality. Users can click a Sync button to pull live balance data from Kraken, and the Create Entry from Sync function is now working without the previous MongoDB serialization errors. The backend includes secure storage for user-specific API keys and endpoints for managing them.
+
+However, there are two critical issues:
+1.  **Balance Display Issue**: The application is showing a total balance of €0, even when the user has funds on Kraken. This indicates a problem with how the fetched Kraken balance is being processed, converted, or displayed in the frontend.
+2.  **Entries Not Displaying**: While the auto-entry creation is confirming that an entry for today already exists, these newly created entries (and potentially older ones) are not visible in the Recent Entries section of the dashboard. This suggests an issue with data retrieval or rendering on the frontend after a successful entry creation.
+
+The immediate next step is to investigate these two display/retrieval issues to ensure the synced data is correctly presented to the user.
+</current_work>
+
+<optional_next_step>
+Check the database and frontend data retrieval logic to fix the €0 balance display and ensure entries appear correctly.
+</optional_next_step>
