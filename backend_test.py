@@ -68,6 +68,332 @@ class CryptoPnLTester:
             self.log_result("API Connection", False, f"- Error: {str(e)}")
             return False
     
+    def test_direct_kraken_api(self):
+        """Test direct Kraken API call to verify the provided keys work"""
+        print("\n=== Testing Direct Kraken API with Provided Keys ===")
+        
+        try:
+            # Create Kraken API signature
+            nonce = str(int(1000*time.time()))
+            data = {'nonce': nonce}
+            urlpath = '/0/private/Balance'
+            
+            postdata = urllib.parse.urlencode(data)
+            encoded = (str(data['nonce']) + postdata).encode()
+            message = urlpath.encode() + hashlib.sha256(encoded).digest()
+            
+            mac = hmac.new(base64.b64decode(KRAKEN_PRIVATE_KEY), message, hashlib.sha512)
+            sigdigest = base64.b64encode(mac.digest())
+            
+            headers = {
+                'API-Key': KRAKEN_API_KEY,
+                'API-Sign': sigdigest.decode()
+            }
+            
+            # Make direct call to Kraken API
+            response = requests.post(
+                "https://api.kraken.com/0/private/Balance",
+                headers=headers,
+                data=data,
+                timeout=15
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                self.log_result("Direct Kraken API Call", True, "- Successfully connected to Kraken")
+                
+                if result.get('error'):
+                    self.log_result("Kraken API Error Check", False, f"- Kraken error: {result['error']}")
+                    return None
+                else:
+                    balances = result.get('result', {})
+                    self.log_result("Kraken Balance Retrieval", True, f"- Retrieved {len(balances)} balance entries")
+                    
+                    # Log balance details
+                    total_eur = 0.0
+                    significant_balances = {}
+                    
+                    for asset, balance in balances.items():
+                        balance_float = float(balance)
+                        if balance_float > 0.01:  # Only significant balances
+                            significant_balances[asset] = balance_float
+                            print(f"   {asset}: {balance_float}")
+                            
+                            # Calculate EUR equivalent
+                            if asset in ['ZEUR', 'EUR']:
+                                total_eur += balance_float
+                            elif asset in ['ZUSD', 'USD']:
+                                total_eur += balance_float * 0.92  # USD to EUR
+                            elif asset in ['BTC', 'XXBT', 'XBT']:
+                                total_eur += balance_float * 40000  # Conservative BTC price
+                            elif asset in ['ETH', 'XETH']:
+                                total_eur += balance_float * 2200   # Conservative ETH price
+                    
+                    self.log_result("Kraken Balance Calculation", True, f"- Estimated total: €{total_eur:.2f}")
+                    return {'balances': balances, 'total_eur': total_eur, 'significant': significant_balances}
+            else:
+                self.log_result("Direct Kraken API Call", False, f"- HTTP {response.status_code}: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_result("Direct Kraken API Test", False, f"- Error: {str(e)}")
+            return None
+    
+    def test_kraken_balance_endpoint(self):
+        """Test /api/exchanges/kraken/balance endpoint specifically"""
+        print("\n=== Testing Backend Kraken Balance Endpoint ===")
+        
+        try:
+            response = requests.get(f"{self.base_url}/exchanges/kraken/balance", 
+                                  headers=self.get_auth_headers(), timeout=15)
+            
+            if response.status_code == 200:
+                balance_data = response.json()
+                self.log_result("Kraken Balance Endpoint", True, "- Endpoint responded successfully")
+                
+                if balance_data.get("success"):
+                    balance_eur = balance_data.get("balance_eur", 0)
+                    self.log_result("Kraken Balance Success", True, f"- Balance: €{balance_eur}")
+                    
+                    # Check for raw balance data
+                    if "raw_balances" in balance_data:
+                        raw_balances = balance_data["raw_balances"]
+                        self.log_result("Kraken Raw Balances", True, f"- {len(raw_balances)} assets returned")
+                        
+                        # Log significant balances
+                        for asset, amount in raw_balances.items():
+                            if float(amount) > 0.01:
+                                print(f"   {asset}: {amount}")
+                    
+                    if "asset_details" in balance_data:
+                        asset_details = balance_data["asset_details"]
+                        self.log_result("Kraken Asset Details", True, f"- {len(asset_details)} significant balances")
+                    
+                    return balance_data
+                else:
+                    error_msg = balance_data.get("error", "Unknown error")
+                    self.log_result("Kraken Balance Success", False, f"- Error: {error_msg}")
+                    return None
+                    
+            elif response.status_code == 401:
+                self.log_result("Kraken Balance Endpoint", False, "- Authentication required")
+                return None
+            else:
+                self.log_result("Kraken Balance Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_result("Kraken Balance Endpoint Test", False, f"- Error: {str(e)}")
+            return None
+    
+    def test_exchange_sync_endpoint(self):
+        """Test /api/exchanges/sync endpoint"""
+        print("\n=== Testing Exchange Sync Endpoint ===")
+        
+        try:
+            response = requests.post(f"{self.base_url}/exchanges/sync", 
+                                   headers=self.get_auth_headers(), timeout=20)
+            
+            if response.status_code == 200:
+                sync_data = response.json()
+                self.log_result("Exchange Sync Endpoint", True, "- Sync endpoint responded")
+                
+                # Check sync results structure
+                if "sync_results" in sync_data:
+                    sync_results = sync_data["sync_results"]
+                    self.log_result("Sync Results Structure", True, f"- {len(sync_results)} exchange results")
+                    
+                    # Check Kraken specifically
+                    if "kraken" in sync_results:
+                        kraken_result = sync_results["kraken"]
+                        if kraken_result.get("success"):
+                            balance = kraken_result.get("balance", 0)
+                            self.log_result("Kraken Sync Success", True, f"- Kraken balance: €{balance}")
+                        else:
+                            error = kraken_result.get("error", "Unknown error")
+                            self.log_result("Kraken Sync Success", False, f"- Kraken error: {error}")
+                    else:
+                        self.log_result("Kraken Sync Present", False, "- No Kraken result in sync")
+                    
+                    # Log all sync results for debugging
+                    for exchange, result in sync_results.items():
+                        success = result.get("success", False)
+                        if success:
+                            balance = result.get("balance", 0)
+                            print(f"   {exchange}: SUCCESS - €{balance}")
+                        else:
+                            error = result.get("error", "Unknown")
+                            print(f"   {exchange}: FAILED - {error}")
+                
+                # Check suggested entry
+                if "suggested_entry" in sync_data:
+                    suggested = sync_data["suggested_entry"]
+                    total = suggested.get("total", 0)
+                    balances = suggested.get("balances", [])
+                    self.log_result("Suggested Entry", True, f"- Total: €{total}, Balances: {len(balances)}")
+                    
+                    # Log balance details
+                    for balance in balances:
+                        exchange_id = balance.get("exchange_id", "unknown")
+                        amount = balance.get("amount", 0)
+                        print(f"   Exchange {exchange_id}: €{amount}")
+                    
+                    return sync_data
+                else:
+                    self.log_result("Suggested Entry", False, "- No suggested entry in response")
+                    return sync_data
+                    
+            elif response.status_code == 401:
+                self.log_result("Exchange Sync Endpoint", False, "- Authentication required")
+                return None
+            else:
+                self.log_result("Exchange Sync Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_result("Exchange Sync Test", False, f"- Error: {str(e)}")
+            return None
+    
+    def test_auto_create_entry_endpoint(self):
+        """Test /api/entries/auto-create endpoint - the main issue"""
+        print("\n=== Testing Auto-Create Entry Endpoint (Main Issue) ===")
+        
+        try:
+            response = requests.post(f"{self.base_url}/entries/auto-create", 
+                                   headers=self.get_auth_headers(), timeout=20)
+            
+            if response.status_code == 200:
+                auto_data = response.json()
+                message = auto_data.get("message", "")
+                self.log_result("Auto-Create Entry Endpoint", True, f"- Response: {message}")
+                
+                if "created successfully" in message:
+                    # Entry was created successfully
+                    total_balance = auto_data.get("total_balance", 0)
+                    pnl_percentage = auto_data.get("pnl_percentage", 0)
+                    pnl_amount = auto_data.get("pnl_amount", 0)
+                    synced_exchanges = auto_data.get("synced_exchanges", 0)
+                    
+                    self.log_result("Auto-Entry Creation Success", True, 
+                                  f"- Balance: €{total_balance}, PnL: {pnl_percentage}% (€{pnl_amount})")
+                    self.log_result("Synced Exchanges Count", True, f"- {synced_exchanges} exchanges synced")
+                    
+                    return auto_data
+                    
+                elif "already exists" in message:
+                    # Entry for today already exists
+                    self.log_result("Auto-Entry Already Exists", True, "- Entry for today already exists")
+                    
+                    # Check if suggested balances are provided
+                    if "suggested_balances" in auto_data:
+                        suggested = auto_data["suggested_balances"]
+                        self.log_result("Suggested Balances", True, f"- {len(suggested)} balance suggestions")
+                        
+                        for balance in suggested:
+                            exchange_id = balance.get("exchange_id", "unknown")
+                            amount = balance.get("amount", 0)
+                            print(f"   Exchange {exchange_id}: €{amount}")
+                    
+                    return auto_data
+                else:
+                    self.log_result("Auto-Entry Response", True, f"- Unexpected response: {message}")
+                    return auto_data
+                    
+            elif response.status_code == 400:
+                # Bad request - might be expected if no balances available
+                try:
+                    error_data = response.json()
+                    detail = error_data.get("detail", "Unknown error")
+                    self.log_result("Auto-Create Entry Error", False, f"- Error: {detail}")
+                except:
+                    self.log_result("Auto-Create Entry Error", False, f"- Error: {response.text}")
+                return None
+                
+            elif response.status_code == 401:
+                self.log_result("Auto-Create Entry Endpoint", False, "- Authentication required")
+                return None
+            else:
+                self.log_result("Auto-Create Entry Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.log_result("Auto-Create Entry Test", False, f"- Error: {str(e)}")
+            return None
+    
+    def test_api_key_storage_retrieval(self):
+        """Test if API keys are being stored and retrieved properly"""
+        print("\n=== Testing API Key Storage and Retrieval ===")
+        
+        # Test storing the Kraken API keys
+        api_key_data = {
+            "exchange_name": "kraken",
+            "api_key": KRAKEN_API_KEY,
+            "api_secret": KRAKEN_PRIVATE_KEY
+        }
+        
+        try:
+            # Store API key
+            response = requests.post(f"{self.base_url}/exchange-api-keys", 
+                                   json=api_key_data,
+                                   headers=self.get_auth_headers(), timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                message = result.get("message", "")
+                self.log_result("Store Kraken API Key", True, f"- {message}")
+            elif response.status_code == 401:
+                self.log_result("Store Kraken API Key", False, "- Authentication required")
+                return False
+            else:
+                self.log_result("Store Kraken API Key", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Store API Key Test", False, f"- Error: {str(e)}")
+            return False
+        
+        # Test retrieving API keys
+        try:
+            response = requests.get(f"{self.base_url}/exchange-api-keys", 
+                                  headers=self.get_auth_headers(), timeout=10)
+            
+            if response.status_code == 200:
+                api_keys = response.json()
+                self.log_result("Retrieve API Keys", True, f"- Retrieved {len(api_keys)} API keys")
+                
+                # Check if Kraken key is present
+                kraken_key = None
+                for key in api_keys:
+                    if key.get("exchange_name") == "kraken":
+                        kraken_key = key
+                        break
+                
+                if kraken_key:
+                    self.log_result("Kraken API Key Present", True, "- Kraken API key found in storage")
+                    
+                    # Verify key is masked
+                    preview = kraken_key.get("api_key_preview", "")
+                    if "..." in preview and len(preview) > 8:
+                        self.log_result("API Key Security", True, "- API key properly masked")
+                    else:
+                        self.log_result("API Key Security", False, f"- API key not properly masked: {preview}")
+                    
+                    return True
+                else:
+                    self.log_result("Kraken API Key Present", False, "- Kraken API key not found")
+                    return False
+                    
+            elif response.status_code == 401:
+                self.log_result("Retrieve API Keys", False, "- Authentication required")
+                return False
+            else:
+                self.log_result("Retrieve API Keys", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Retrieve API Keys Test", False, f"- Error: {str(e)}")
+            return False
+    
     def test_critical_balance_display_issue(self):
         """Test the critical issue: Balance showing €0 despite database having €57,699.48"""
         print("\n=== Testing Critical Balance Display Issue ===")
