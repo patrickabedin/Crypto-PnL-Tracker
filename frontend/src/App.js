@@ -374,7 +374,63 @@ const CryptoPnLTracker = () => {
     }
   };
 
-  // Exchange management
+  // KPI management
+  const handleAddKPI = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API}/kpis`, {
+        ...newKPI,
+        target_amount: parseFloat(newKPI.target_amount)
+      });
+      setNewKPI({ name: '', target_amount: '', color: '#10B981' });
+      fetchData();
+    } catch (error) {
+      console.error('Error adding KPI:', error);
+      alert('Error adding KPI. Please try again.');
+    }
+  };
+
+  const handleUpdateKPI = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.put(`${API}/kpis/${editingKPI.id}`, {
+        ...newKPI,
+        target_amount: parseFloat(newKPI.target_amount)
+      });
+      setEditingKPI(null);
+      setNewKPI({ name: '', target_amount: '', color: '#10B981' });
+      fetchData();
+    } catch (error) {
+      console.error('Error updating KPI:', error);
+      alert('Error updating KPI. Please try again.');
+    }
+  };
+
+  const startEditingKPI = (kpi) => {
+    setEditingKPI(kpi);
+    setNewKPI({
+      name: kpi.name,
+      target_amount: kpi.target_amount.toString(),
+      color: kpi.color
+    });
+  };
+
+  const cancelEditingKPI = () => {
+    setEditingKPI(null);
+    setNewKPI({ name: '', target_amount: '', color: '#10B981' });
+  };
+
+  const handleDeleteKPI = async (kpiId) => {
+    if (window.confirm('Are you sure you want to delete this KPI?')) {
+      try {
+        await axios.delete(`${API}/kpis/${kpiId}`);
+        fetchData();
+      } catch (error) {
+        console.error('Error deleting KPI:', error);
+        alert('Error deleting KPI. Please try again.');
+      }
+    }
+  };
   const handleAddExchange = async (e) => {
     e.preventDefault();
     try {
