@@ -1364,6 +1364,26 @@ async def add_capital_deposit(deposit_data: CapitalDepositCreate, current_user: 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.put("/capital-deposits/{deposit_id}")
+async def update_capital_deposit(deposit_id: str, deposit_data: CapitalDepositCreate, current_user: User = Depends(require_auth)):
+    """Update a capital deposit"""
+    try:
+        result = await db.capital_deposits.update_one(
+            {"user_id": current_user.id, "id": deposit_id},
+            {"$set": {
+                "amount": deposit_data.amount,
+                "deposit_date": deposit_data.deposit_date,
+                "notes": deposit_data.notes or ""
+            }}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Capital deposit not found")
+        
+        return {"message": "Capital deposit updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.delete("/capital-deposits/{deposit_id}")
 async def delete_capital_deposit(deposit_id: str, current_user: User = Depends(require_auth)):
     """Delete a capital deposit"""
