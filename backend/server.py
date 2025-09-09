@@ -526,9 +526,15 @@ async def create_pnl_entry(entry_data: PnLEntryCreate, current_user: User = Depe
         
         previous_total = previous_entry["total"] if previous_entry else total
         
+        # Get user's KPIs
+        user_kpis = await db.kpis.find({
+            "user_id": current_user.id,
+            "is_active": True
+        }).to_list(100)
+        
         # Calculate metrics
         pnl_metrics = calculate_pnl_metrics(total, previous_total)
-        kpi_progress = calculate_kpi_progress(total)
+        kpi_progress = calculate_kpi_progress(total, user_kpis)
         
         # Create entry
         entry = PnLEntry(
@@ -537,9 +543,7 @@ async def create_pnl_entry(entry_data: PnLEntryCreate, current_user: User = Depe
             total=round(total, 2),
             pnl_percentage=pnl_metrics["pnl_percentage"],
             pnl_amount=pnl_metrics["pnl_amount"],
-            kpi_5k=kpi_progress["kpi_5k"],
-            kpi_10k=kpi_progress["kpi_10k"],
-            kpi_15k=kpi_progress["kpi_15k"],
+            kpi_progress=[DynamicKPI(**kpi) for kpi in kpi_progress],
             notes=entry_data.notes
         )
         
@@ -547,6 +551,7 @@ async def create_pnl_entry(entry_data: PnLEntryCreate, current_user: User = Depe
         entry_dict = entry.dict()
         entry_dict["date"] = entry_dict["date"].isoformat()  # Convert date to string
         entry_dict["balances"] = [balance.dict() for balance in entry.balances]
+        entry_dict["kpi_progress"] = [kpi.dict() for kpi in entry.kpi_progress]
         entry_dict["user_id"] = current_user.id
         await db.pnl_entries.insert_one(entry_dict)
         
