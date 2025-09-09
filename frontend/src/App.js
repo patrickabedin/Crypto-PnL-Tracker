@@ -1698,12 +1698,20 @@ const CryptoPnLTracker = () => {
                                 Starting: {formatCurrency(balance.starting_balance)} on {new Date(balance.starting_date).toLocaleDateString()}
                               </p>
                             </div>
-                            <button
-                              onClick={() => handleDeleteStartingBalance(balance.exchange_id)}
-                              className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50"
-                            >
-                              Delete
-                            </button>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => startEditingStartingBalance(balance)}
+                                className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 rounded border border-blue-200 hover:bg-blue-50"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteStartingBalance(balance.exchange_id)}
+                                className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
