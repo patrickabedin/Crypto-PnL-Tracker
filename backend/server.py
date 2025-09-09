@@ -1223,6 +1223,110 @@ async def recalculate_all_entries(user_id: str):
     except Exception as e:
         print(f"Error recalculating all entries: {e}")
 
+# Starting Balance and Capital Deposit Management
+@api_router.get("/starting-balances")
+async def get_starting_balances(current_user: User = Depends(require_auth)):
+    """Get starting balances for all exchanges"""
+    try:
+        starting_balances = await db.exchange_starting_balances.find({
+            "user_id": current_user.id
+        }).to_list(length=None)
+        return starting_balances
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/starting-balances")
+async def set_starting_balance(balance_data: ExchangeStartingBalanceCreate, current_user: User = Depends(require_auth)):
+    """Set or update starting balance for an exchange"""
+    try:
+        # Check if starting balance already exists for this exchange
+        existing = await db.exchange_starting_balances.find_one({
+            "user_id": current_user.id,
+            "exchange_id": balance_data.exchange_id
+        })
+        
+        if existing:
+            # Update existing
+            await db.exchange_starting_balances.update_one(
+                {"id": existing["id"]},
+                {"$set": {
+                    "starting_balance": balance_data.starting_balance,
+                    "starting_date": balance_data.starting_date
+                }}
+            )
+            return {"message": "Starting balance updated successfully"}
+        else:
+            # Create new
+            starting_balance = ExchangeStartingBalance(
+                user_id=current_user.id,
+                exchange_id=balance_data.exchange_id,
+                starting_balance=balance_data.starting_balance,
+                starting_date=balance_data.starting_date
+            )
+            await db.exchange_starting_balances.insert_one(starting_balance.dict())
+            return {"message": "Starting balance set successfully"}
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/starting-balances/{exchange_id}")
+async def delete_starting_balance(exchange_id: str, current_user: User = Depends(require_auth)):
+    """Delete starting balance for an exchange"""
+    try:
+        result = await db.exchange_starting_balances.delete_one({
+            "user_id": current_user.id,
+            "exchange_id": exchange_id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Starting balance not found")
+        
+        return {"message": "Starting balance deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/capital-deposits")
+async def get_capital_deposits(current_user: User = Depends(require_auth)):
+    """Get all capital deposits"""
+    try:
+        deposits = await db.capital_deposits.find({
+            "user_id": current_user.id
+        }).sort("deposit_date", -1).to_list(length=None)
+        return deposits
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/capital-deposits")
+async def add_capital_deposit(deposit_data: CapitalDepositCreate, current_user: User = Depends(require_auth)):
+    """Add a new capital deposit"""
+    try:
+        deposit = CapitalDeposit(
+            user_id=current_user.id,
+            amount=deposit_data.amount,
+            deposit_date=deposit_data.deposit_date,
+            notes=deposit_data.notes or ""
+        )
+        await db.capital_deposits.insert_one(deposit.dict())
+        return {"message": "Capital deposit added successfully", "deposit": deposit.dict()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/capital-deposits/{deposit_id}")
+async def delete_capital_deposit(deposit_id: str, current_user: User = Depends(require_auth)):
+    """Delete a capital deposit"""
+    try:
+        result = await db.capital_deposits.delete_one({
+            "user_id": current_user.id,
+            "id": deposit_id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Capital deposit not found")
+        
+        return {"message": "Capital deposit deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 async def recalculate_subsequent_entries(from_date: date, user_id: str):
     """Recalculate PnL for entries from the given date onwards for a specific user"""
     try:
