@@ -982,6 +982,9 @@ const CryptoPnLTracker = () => {
               <button onClick={() => setShowMonthlyView(!showMonthlyView)} className="btn-secondary text-sm">
                 {showMonthlyView ? 'Hide Monthly' : 'Monthly View'}
               </button>
+              <button onClick={() => setShowHeatmap(!showHeatmap)} className="btn-secondary text-sm">
+                {showHeatmap ? 'Hide Heatmap' : 'Performance Map'}
+              </button>
               <button onClick={() => setShowCharts(!showCharts)} className="btn-secondary text-sm">
                 {showCharts ? 'Hide Charts' : 'Charts'}
               </button>
