@@ -142,8 +142,11 @@ class KrakenAPI:
         sigdigest = base64.b64encode(mac.digest())
         return sigdigest.decode()
     
-    async def get_account_balance(self, api_key=None, private_key=None, user_id=None):
-        """Get account balance from Kraken using user's API keys"""
+    async def get_account_balance(self, api_key=None, private_key=None, user_id=None, retry_count=0):
+        """Get account balance from Kraken using user's API keys with rate limiting handling"""
+        max_retries = 3
+        base_delay = 2  # Base delay in seconds
+        
         try:
             # If no API keys provided, try to get from user's stored keys
             if not api_key or not private_key:
@@ -182,7 +185,27 @@ class KrakenAPI:
                     result = await response.json()
                     
                     if result.get('error'):
-                        raise Exception(f"Kraken API error: {result['error']}")
+                        error_messages = result['error']
+                        logger.warning(f"Kraken API error: {error_messages}")
+                        
+                        # Check for rate limiting errors
+                        if any("lockout" in str(error).lower() or "rate" in str(error).lower() 
+                               for error in error_messages):
+                            if retry_count < max_retries:
+                                # Exponential backoff: 2, 4, 8 seconds
+                                delay = base_delay * (2 ** retry_count)
+                                logger.info(f"Rate limited. Retrying in {delay} seconds... (attempt {retry_count + 1}/{max_retries})")
+                                await asyncio.sleep(delay)
+                                return await self.get_account_balance(api_key, private_key, user_id, retry_count + 1)
+                            else:
+                                logger.error(f"Max retries reached for Kraken API rate limiting")
+                                return {
+                                    'success': False,
+                                    'error': 'Kraken API temporarily unavailable due to rate limiting. Please try again in a few minutes.',
+                                    'balance_eur': 0.0
+                                }
+                        else:
+                            raise Exception(f"Kraken API error: {error_messages}")
                     
                     balances = result.get('result', {})
                     
