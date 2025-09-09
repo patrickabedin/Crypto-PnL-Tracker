@@ -234,10 +234,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Create PnL Entry Model and CRUD API"
-    - "Portfolio Statistics API"
-    - "Automatic PnL Calculations"
-    - "KPI Progress Tracking"
+    - "Daily Entry Form"
+    - "PnL Dashboard with Stats Cards"
+    - "KPI Progress Visualization"
+    - "Historical Data Table"
+    - "Edit and Delete Functionality"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
