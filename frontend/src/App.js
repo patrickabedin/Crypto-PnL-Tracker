@@ -179,12 +179,15 @@ const CryptoPnLTracker = () => {
   // Configure axios defaults
   axios.defaults.withCredentials = true;
 
-  // Initialize default exchanges
-  const initializeExchanges = async () => {
+  // Initialize default exchanges and KPIs
+  const initializeDefaults = async () => {
     try {
-      await axios.post(`${API}/initialize-default-exchanges`);
+      await Promise.all([
+        axios.post(`${API}/initialize-default-exchanges`),
+        axios.post(`${API}/initialize-default-kpis`)
+      ]);
     } catch (error) {
-      console.error('Error initializing exchanges:', error);
+      console.error('Error initializing defaults:', error);
     }
   };
 
