@@ -83,6 +83,22 @@ class KPICreate(BaseModel):
     target_amount: float
     color: Optional[str] = "#3B82F6"
 
+class ExchangeAPIKey(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    exchange_name: str  # kraken, binance, bitget
+    api_key: str
+    api_secret: str
+    encrypted: bool = True
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_used: Optional[datetime] = None
+
+class ExchangeAPIKeyCreate(BaseModel):
+    exchange_name: str
+    api_key: str
+    api_secret: str
+
 class DynamicBalance(BaseModel):
     exchange_id: str
     amount: float
