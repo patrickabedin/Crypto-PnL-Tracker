@@ -216,15 +216,18 @@ frontend:
 
   - task: "PnL Dashboard with Stats Cards"
     implemented: true
-    working: "NA"  # needs testing
+    working: "NA"  # cannot test without authentication
     file: "/app/frontend/src/App.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Implemented dashboard showing total balance, daily PnL, average PnL, and total entries. Color-coded for gains/losses"
+        - working: "NA"
+          agent: "testing"
+          comment: "CRITICAL TESTING LIMITATION: Cannot verify €57,699.48 balance display or dashboard functionality due to Google OAuth authentication requirement. Backend stats API correctly returns 401 Unauthorized for unauthenticated requests. The critical issue of balance showing €0 vs €57,699.48 cannot be verified without actual user login. Dashboard implementation exists in code but functional verification blocked by authentication."
 
   - task: "KPI Progress Visualization"
     implemented: true
