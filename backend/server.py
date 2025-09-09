@@ -1784,8 +1784,8 @@ async def recalculate_subsequent_entries(from_date: date, user_id: str):
     except Exception as e:
         print(f"Error recalculating entries: {e}")
 
-# Include the router in the main app
-app.include_router(api_router)
+# Include the router in the main app with /api prefix
+app.include_router(api_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
