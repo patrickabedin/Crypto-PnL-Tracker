@@ -940,7 +940,14 @@ const CryptoPnLTracker = () => {
               <button onClick={() => setShowAddForm(true)} className="btn-primary text-sm">
                 Manual Entry
               </button>
-              <button onClick={logout} className="text-gray-500 hover:text-gray-700 text-sm">
+              <button 
+                onClick={toggleDarkMode} 
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {darkMode ? '☀️' : '🌙'}
+              </button>
+              <button onClick={logout} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm">
                 Logout
               </button>
             </div>
