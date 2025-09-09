@@ -381,6 +381,134 @@ async def initialize_default_exchanges(current_user: User = Depends(require_auth
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# KPI Management Endpoints
+@api_router.get("/kpis", response_model=List[KPI])
+async def get_kpis(current_user: User = Depends(require_auth)):
+    try:
+        kpis = await db.kpis.find({
+            "user_id": current_user.id,
+            "is_active": True
+        }).sort("target_amount", 1).to_list(100)
+        return [KPI(**kpi) for kpi in kpis]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/kpis", response_model=KPI)
+async def create_kpi(kpi_data: KPICreate, current_user: User = Depends(require_auth)):
+    try:
+        # Check if KPI with same target already exists for this user
+        existing = await db.kpis.find_one({
+            "user_id": current_user.id,
+            "target_amount": kpi_data.target_amount
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="KPI with this target amount already exists")
+        
+        kpi = KPI(
+            name=kpi_data.name,
+            target_amount=kpi_data.target_amount,
+            color=kpi_data.color
+        )
+        
+        # Add user_id to KPI
+        kpi_dict = kpi.dict()
+        kpi_dict["user_id"] = current_user.id
+        
+        await db.kpis.insert_one(kpi_dict)
+        return kpi
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/kpis/{kpi_id}", response_model=KPI)
+async def update_kpi(kpi_id: str, kpi_data: KPICreate, current_user: User = Depends(require_auth)):
+    try:
+        # Check if KPI belongs to user
+        kpi = await db.kpis.find_one({
+            "id": kpi_id,
+            "user_id": current_user.id
+        })
+        if not kpi:
+            raise HTTPException(status_code=404, detail="KPI not found")
+        
+        # Update KPI
+        await db.kpis.update_one(
+            {"id": kpi_id, "user_id": current_user.id},
+            {"$set": {
+                "name": kpi_data.name,
+                "target_amount": kpi_data.target_amount,
+                "color": kpi_data.color
+            }}
+        )
+        
+        # Get updated KPI
+        updated_kpi = await db.kpis.find_one({"id": kpi_id, "user_id": current_user.id})
+        
+        # Recalculate all entries for this user
+        await recalculate_all_entries(current_user.id)
+        
+        return KPI(**updated_kpi)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/kpis/{kpi_id}")
+async def delete_kpi(kpi_id: str, current_user: User = Depends(require_auth)):
+    try:
+        # Check if KPI belongs to user
+        kpi = await db.kpis.find_one({
+            "id": kpi_id,
+            "user_id": current_user.id
+        })
+        if not kpi:
+            raise HTTPException(status_code=404, detail="KPI not found")
+        
+        # Delete KPI
+        result = await db.kpis.delete_one({
+            "id": kpi_id,
+            "user_id": current_user.id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="KPI not found")
+        
+        # Recalculate all entries for this user
+        await recalculate_all_entries(current_user.id)
+        
+        return {"message": "KPI deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/initialize-default-kpis")
+async def initialize_default_kpis(current_user: User = Depends(require_auth)):
+    """Initialize default KPIs if none exist for this user"""
+    try:
+        count = await db.kpis.count_documents({"user_id": current_user.id})
+        if count == 0:
+            default_kpis = [
+                {"name": "5K Goal", "target_amount": 5000, "color": "#10B981"},
+                {"name": "10K Goal", "target_amount": 10000, "color": "#F59E0B"},
+                {"name": "15K Goal", "target_amount": 15000, "color": "#EF4444"}
+            ]
+            
+            for kpi_data in default_kpis:
+                kpi = KPI(**kpi_data)
+                kpi_dict = kpi.dict()
+                kpi_dict["user_id"] = current_user.id
+                await db.kpis.insert_one(kpi_dict)
+            
+            return {"message": "Default KPIs initialized"}
+        else:
+            return {"message": "KPIs already exist"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/entries", response_model=PnLEntry)
 async def create_pnl_entry(entry_data: PnLEntryCreate, current_user: User = Depends(require_auth)):
     try:
