@@ -396,6 +396,7 @@ const CryptoPnLTracker = () => {
     try {
       await axios.delete(`${API}/starting-balances/${exchangeId}`);
       await loadStartingBalances();
+      await fetchData(); // Refresh stats to update ROI cards
       alert('Starting balance deleted successfully!');
     } catch (error) {
       console.error('Error deleting starting balance:', error);
