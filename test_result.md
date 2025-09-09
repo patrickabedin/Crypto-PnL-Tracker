@@ -354,15 +354,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Google OAuth Authentication Configuration"
-    - "PnL Dashboard with Stats Cards"
-    - "API Key Management Interface"
+    - "Starting Balances Management API"
+    - "Capital Deposits Management API" 
+    - "Updated Stats API with ROI Calculations"
   stuck_tasks:
     - "Google OAuth Authentication Configuration"
-    - "PnL Dashboard with Stats Cards"
-    - "API Key Management Interface"
   test_all: false
-  test_priority: "oauth_configuration_critical"
+  test_priority: "new_roi_features_complete"
 
 agent_communication:
     - agent: "main"
