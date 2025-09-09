@@ -256,6 +256,14 @@ const CryptoPnLTracker = () => {
   const [showMonthlyView, setShowMonthlyView] = useState(false);
   const [showExchangeManager, setShowExchangeManager] = useState(false);
   const [showKPIManager, setShowKPIManager] = useState(false);
+  const [editingKPI, setEditingKPI] = useState(null);
+  
+  // Starting Balance & Capital Deposits State
+  const [showSettingsManager, setShowSettingsManager] = useState(false);
+  const [startingBalances, setStartingBalances] = useState([]);
+  const [capitalDeposits, setCapitalDeposits] = useState([]);
+  const [newStartingBalance, setNewStartingBalance] = useState({ exchange_id: '', starting_balance: '', starting_date: '' });
+  const [newCapitalDeposit, setNewCapitalDeposit] = useState({ amount: '', deposit_date: '', notes: '' });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [formData, setFormData] = useState({
@@ -273,7 +281,6 @@ const CryptoPnLTracker = () => {
     target_amount: '',
     color: '#10B981'
   });
-  const [editingKPI, setEditingKPI] = useState(null);
 
 
   // Configure axios defaults
