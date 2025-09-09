@@ -36,6 +36,9 @@ class CryptoPnLTester:
         self.passed_tests = []
         self.session_token = None
         self.user_id = TEST_USER_ID
+        self.critical_issues = []
+        self.balance_found = None
+        self.entries_found = []
         
     def get_auth_headers(self):
         """Get authentication headers for API requests"""
@@ -51,6 +54,11 @@ class CryptoPnLTester:
         else:
             self.failed_tests.append(test_name)
             print(f"❌ {test_name}: FAILED {message}")
+    
+    def log_critical_issue(self, issue):
+        """Log critical issues for final summary"""
+        self.critical_issues.append(issue)
+        print(f"🔴 CRITICAL: {issue}")
     
     def test_api_connection(self):
         """Test basic API connectivity"""
@@ -69,6 +77,150 @@ class CryptoPnLTester:
                 return False
         except Exception as e:
             self.log_result("API Connection", False, f"- Error: {str(e)}")
+            return False
+    
+    def test_database_entry_verification(self):
+        """CRITICAL TEST 1: Check if €57,699.48 entry exists and is associated with correct user"""
+        print("\n=== CRITICAL TEST 1: Database Entry Verification ===")
+        
+        try:
+            # Test GET /api/entries without authentication first
+            response = requests.get(f"{self.base_url}/entries", timeout=10)
+            
+            if response.status_code == 401:
+                self.log_result("Entries Endpoint Security", True, "- Properly requires authentication")
+                
+                # Since we can't authenticate, we'll test the stats endpoint which should also require auth
+                stats_response = requests.get(f"{self.base_url}/stats", timeout=10)
+                
+                if stats_response.status_code == 401:
+                    self.log_result("Stats Endpoint Security", True, "- Properly requires authentication")
+                    self.log_critical_issue("Cannot verify €57,699.48 entry without authentication - this is the core issue")
+                    return False
+                else:
+                    self.log_result("Stats Endpoint Security", False, f"- Expected 401, got {stats_response.status_code}")
+                    
+                    # If stats endpoint doesn't require auth, check what it returns
+                    if stats_response.status_code == 200:
+                        stats_data = stats_response.json()
+                        total_balance = stats_data.get("total_balance", 0)
+                        
+                        if total_balance == 57699.48:
+                            self.log_result("Expected Balance Found", True, f"- Found €{total_balance} in stats")
+                            self.balance_found = total_balance
+                            return True
+                        elif total_balance == 0:
+                            self.log_critical_issue(f"Stats API returns €0 balance instead of expected €57,699.48")
+                            return False
+                        else:
+                            self.log_result("Unexpected Balance", True, f"- Found €{total_balance} (not expected €57,699.48)")
+                            self.balance_found = total_balance
+                            return True
+                    
+            elif response.status_code == 200:
+                # Entries endpoint doesn't require auth - check entries
+                entries = response.json()
+                self.log_result("Entries Retrieved", True, f"- Retrieved {len(entries)} entries")
+                
+                # Look for the €57,699.48 entry
+                target_balance = 57699.48
+                found_entry = None
+                
+                for entry in entries:
+                    total = entry.get("total", 0)
+                    if abs(total - target_balance) < 1:  # Allow small rounding differences
+                        found_entry = entry
+                        break
+                
+                if found_entry:
+                    self.log_result("Target Entry Found", True, f"- Found entry with €{found_entry['total']}")
+                    self.entries_found.append(found_entry)
+                    
+                    # Check user association
+                    entry_user_id = found_entry.get("user_id")
+                    if entry_user_id == TEST_USER_ID:
+                        self.log_result("User Association", True, f"- Entry belongs to correct user")
+                        return True
+                    else:
+                        self.log_critical_issue(f"Entry belongs to different user: {entry_user_id} vs expected {TEST_USER_ID}")
+                        return False
+                else:
+                    self.log_critical_issue(f"€57,699.48 entry not found in database")
+                    
+                    # Log all entries for debugging
+                    print("   Available entries:")
+                    for entry in entries[:5]:  # Show first 5 entries
+                        total = entry.get("total", 0)
+                        date = entry.get("date", "unknown")
+                        user_id = entry.get("user_id", "unknown")
+                        print(f"     Date: {date}, Total: €{total}, User: {user_id[:8]}...")
+                    
+                    return False
+            else:
+                self.log_result("Entries Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Database Entry Verification", False, f"- Error: {str(e)}")
+            return False
+    
+    def test_stats_api_verification(self):
+        """CRITICAL TEST 4: Test GET /api/stats - should return €57,699.48 if entry exists"""
+        print("\n=== CRITICAL TEST 4: Stats API Verification ===")
+        
+        try:
+            response = requests.get(f"{self.base_url}/stats", 
+                                  headers=self.get_auth_headers(), timeout=10)
+            
+            if response.status_code == 200:
+                stats_data = response.json()
+                self.log_result("Stats API Response", True, "- Stats endpoint responded successfully")
+                
+                # Check total balance
+                total_balance = stats_data.get("total_balance", 0)
+                total_entries = stats_data.get("total_entries", 0)
+                daily_pnl = stats_data.get("daily_pnl", 0)
+                
+                print(f"   Total Balance: €{total_balance}")
+                print(f"   Total Entries: {total_entries}")
+                print(f"   Daily PnL: €{daily_pnl}")
+                
+                if total_balance == 57699.48:
+                    self.log_result("Expected Balance in Stats", True, f"- Stats shows correct €{total_balance}")
+                    self.balance_found = total_balance
+                    return True
+                elif total_balance == 0:
+                    self.log_critical_issue(f"Stats API shows €0 balance instead of expected €57,699.48")
+                    
+                    # Check if there are entries but balance is 0
+                    if total_entries > 0:
+                        self.log_critical_issue(f"Database has {total_entries} entries but balance is €0 - calculation error")
+                    else:
+                        self.log_critical_issue(f"No entries found in database for authenticated user")
+                    
+                    return False
+                else:
+                    self.log_result("Different Balance Found", True, f"- Stats shows €{total_balance} (not expected €57,699.48)")
+                    self.balance_found = total_balance
+                    
+                    # Check KPI progress
+                    kpi_progress = stats_data.get("kpi_progress", {})
+                    if kpi_progress:
+                        print(f"   KPI Progress: {kpi_progress}")
+                        self.log_result("KPI Progress Available", True, "- KPI data present")
+                    
+                    return True
+                    
+            elif response.status_code == 401:
+                self.log_result("Stats API Authentication", False, "- Authentication required")
+                self.log_critical_issue("Cannot test stats API without authentication")
+                return False
+            else:
+                self.log_result("Stats API Response", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Stats API Test", False, f"- Error: {str(e)}")
             return False
     
     def test_direct_kraken_api(self):
