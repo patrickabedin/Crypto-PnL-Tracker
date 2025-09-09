@@ -892,7 +892,7 @@ const CryptoPnLTracker = () => {
             <div className="mt-4 pb-4 border-t pt-4 md:hidden">
               <div className="space-y-2">
                 <button onClick={() => { setShowAddForm(true); setShowMobileMenu(false); }} className="w-full btn-primary text-sm py-3">
-                  Add Entry
+                  Manual Entry
                 </button>
                 <button 
                   onClick={() => { handleSyncExchanges(); setShowMobileMenu(false); }}
