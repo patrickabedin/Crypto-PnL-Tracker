@@ -33,8 +33,10 @@ const API = `${BACKEND_URL}/api`;
 const CryptoPnLTracker = () => {
   const [entries, setEntries] = useState([]);
   const [stats, setStats] = useState({});
+  const [chartData, setChartData] = useState({});
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
