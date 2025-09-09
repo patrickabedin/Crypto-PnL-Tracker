@@ -78,6 +78,10 @@ class DynamicBalance(BaseModel):
     exchange_id: str
     amount: float
 
+class DynamicKPI(BaseModel):
+    kpi_id: str
+    progress: float
+
 class PnLEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     date: date
@@ -85,9 +89,7 @@ class PnLEntry(BaseModel):
     total: float = 0.0
     pnl_percentage: float = 0.0
     pnl_amount: float = 0.0
-    kpi_5k: float = 0.0
-    kpi_10k: float = 0.0
-    kpi_15k: float = 0.0
+    kpi_progress: List[DynamicKPI] = []
     notes: Optional[str] = ""
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
