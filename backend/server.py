@@ -215,6 +215,7 @@ async def get_portfolio_stats():
                 "daily_pnl": 0,
                 "daily_pnl_percentage": 0,
                 "avg_daily_pnl": 0,
+                "avg_daily_pnl_percentage": 0,
                 "kpi_progress": {"5k": 0, "10k": 0, "15k": 0}
             }
         
