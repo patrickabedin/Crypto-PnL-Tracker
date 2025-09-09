@@ -216,6 +216,101 @@ const CryptoPnLTracker = () => {
     return 'text-gray-600 bg-gray-50';
   };
 
+  // Prepare chart data
+  const getPortfolioChartData = () => {
+    if (!chartData.portfolio_timeline || chartData.portfolio_timeline.length === 0) return null;
+    
+    return {
+      labels: chartData.portfolio_timeline.map(item => new Date(item.date).toLocaleDateString()),
+      datasets: [
+        {
+          label: 'Total Portfolio',
+          data: chartData.portfolio_timeline.map(item => item.total),
+          borderColor: 'rgb(59, 130, 246)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.1,
+          fill: true
+        },
+        {
+          label: 'Kraken',
+          data: chartData.portfolio_timeline.map(item => item.kraken),
+          borderColor: 'rgb(16, 185, 129)',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          tension: 0.1
+        },
+        {
+          label: 'Bitget',
+          data: chartData.portfolio_timeline.map(item => item.bitget),
+          borderColor: 'rgb(245, 158, 11)',
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          tension: 0.1
+        },
+        {
+          label: 'Binance',
+          data: chartData.portfolio_timeline.map(item => item.binance),
+          borderColor: 'rgb(239, 68, 68)',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          tension: 0.1
+        }
+      ]
+    };
+  };
+
+  const getPnLChartData = () => {
+    if (!chartData.pnl_timeline || chartData.pnl_timeline.length === 0) return null;
+    
+    return {
+      labels: chartData.pnl_timeline.map(item => new Date(item.date).toLocaleDateString()),
+      datasets: [
+        {
+          label: 'Daily PnL %',
+          data: chartData.pnl_timeline.map(item => item.pnl_percentage),
+          backgroundColor: chartData.pnl_timeline.map(item => 
+            item.pnl_percentage > 0 ? 'rgba(16, 185, 129, 0.6)' : 'rgba(239, 68, 68, 0.6)'
+          ),
+          borderColor: chartData.pnl_timeline.map(item => 
+            item.pnl_percentage > 0 ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)'
+          ),
+          borderWidth: 1
+        }
+      ]
+    };
+  };
+
+  const getExchangeBreakdownData = () => {
+    if (!chartData.exchange_breakdown) return null;
+    
+    const total = chartData.exchange_breakdown.kraken + 
+                  chartData.exchange_breakdown.bitget + 
+                  chartData.exchange_breakdown.binance;
+    
+    if (total === 0) return null;
+    
+    return {
+      labels: ['Kraken', 'Bitget', 'Binance'],
+      datasets: [
+        {
+          data: [
+            chartData.exchange_breakdown.kraken,
+            chartData.exchange_breakdown.bitget,
+            chartData.exchange_breakdown.binance
+          ],
+          backgroundColor: [
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+            'rgba(239, 68, 68, 0.8)'
+          ],
+          borderColor: [
+            'rgb(16, 185, 129)',
+            'rgb(245, 158, 11)',
+            'rgb(239, 68, 68)'
+          ],
+          borderWidth: 2
+        }
+      ]
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
