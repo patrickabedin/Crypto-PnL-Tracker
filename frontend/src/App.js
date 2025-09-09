@@ -898,15 +898,15 @@ const CryptoPnLTracker = () => {
                 <span className="text-white text-sm font-bold">₿</span>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900 md:text-xl">Crypto PnL</h1>
-                <p className="text-xs text-gray-500 hidden sm:block">Portfolio Tracker</p>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white md:text-xl transition-colors duration-200">Crypto PnL</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block transition-colors duration-200">Portfolio Tracker</p>
               </div>
             </div>
             
             {/* Mobile Menu Button */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors duration-200"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
