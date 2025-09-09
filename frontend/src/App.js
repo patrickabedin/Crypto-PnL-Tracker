@@ -427,23 +427,53 @@ const CryptoPnLTracker = () => {
     }));
   };
 
-  // Add new entry
+  // Enhanced Manual Entry Functions
   const handleAddEntry = async (e) => {
     e.preventDefault();
+    
     try {
+      // Validate required fields
+      if (!formData.date) {
+        alert('Date is required');
+        return;
+      }
+
+      // Calculate total from exchange balances
+      const total = formData.balances.reduce((sum, balance) => {
+        const amount = parseFloat(balance.amount || 0);
+        return sum + amount;
+      }, 0);
+
+      if (total <= 0) {
+        alert('Please enter at least one exchange balance');
+        return;
+      }
+
+      // Create entry with proper structure
       const entryData = {
         date: formData.date,
         balances: formData.balances.filter(b => b.amount > 0),
-        notes: formData.notes
+        notes: formData.notes,
+        // Let backend calculate PnL and KPI progress
       };
 
+      console.log('Submitting entry:', entryData);
+      
       await axios.post(`${API}/entries`, entryData);
+      
+      // Refresh data
+      fetchData();
+      
+      // Reset form
       resetForm();
       setShowAddForm(false);
-      fetchData();
+      
+      alert('Entry added successfully!');
+      
     } catch (error) {
       console.error('Error adding entry:', error);
-      alert('Error adding entry. Please try again.');
+      const errorMsg = error.response?.data?.detail || error.message || 'Failed to add entry';
+      alert(`Error adding entry: ${errorMsg}`);
     }
   };
 
