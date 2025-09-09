@@ -209,6 +209,13 @@ const CryptoPnLTracker = () => {
     }
   };
 
+  // Get PnL color class
+  const getPnLColor = (value) => {
+    if (value > 0) return 'text-green-600 bg-green-50';
+    if (value < 0) return 'text-red-600 bg-red-50';
+    return 'text-gray-600 bg-gray-50';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
