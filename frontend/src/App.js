@@ -985,9 +985,17 @@ const CryptoPnLTracker = () => {
                     Export
                   </button>
                 </div>
-                <button onClick={logout} className="w-full text-red-600 text-sm py-2">
-                  Logout
-                </button>
+                <div className="mt-4 space-y-2">
+                  <button 
+                    onClick={() => { toggleDarkMode(); setShowMobileMenu(false); }} 
+                    className="w-full btn-secondary text-sm py-3"
+                  >
+                    {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
+                  </button>
+                  <button onClick={logout} className="w-full text-red-600 text-sm py-2">
+                    Logout
+                  </button>
+                </div>
               </div>
             </div>
           )}
