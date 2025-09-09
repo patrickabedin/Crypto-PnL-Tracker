@@ -434,7 +434,81 @@ class CryptoPnLTester:
             self.log_result("API Connection", False, f"- Error: {str(e)}")
             return False
     
-    def test_create_entry(self):
+    def log_result(self, test_name, success, message=""):
+        """Log test results"""
+        if success:
+            self.passed_tests.append(test_name)
+            print(f"✅ {test_name}: PASSED {message}")
+        else:
+            self.failed_tests.append(test_name)
+            print(f"❌ {test_name}: FAILED {message}")
+    
+    def run_critical_issue_tests(self):
+        """Run tests focused on the critical issues reported"""
+        print("🚀 Starting Critical Issue Tests for Crypto PnL Tracker")
+        print(f"🔗 Testing against: {self.base_url}")
+        print(f"👤 Test User ID: {self.user_id}")
+        print("=" * 60)
+        
+        # Test API connection first
+        if not self.test_api_connection():
+            print("\n❌ API connection failed. Cannot proceed with tests.")
+            return False
+        
+        # Test authentication flow
+        self.test_authentication_flow()
+        
+        # Run critical issue tests
+        print("\n🔍 CRITICAL ISSUE TESTING")
+        print("=" * 40)
+        
+        # 1. Test balance display issue
+        existing_entry = self.test_critical_balance_display_issue()
+        
+        # 2. Test stats API issue
+        stats_data = self.test_stats_api_issue()
+        
+        # 3. Test new API key management endpoints
+        self.test_exchange_api_key_management()
+        
+        # 4. Test Kraken API integration
+        self.test_kraken_api_integration()
+        
+        # Print summary
+        print("\n" + "=" * 60)
+        print("📊 CRITICAL ISSUE TEST SUMMARY")
+        print("=" * 60)
+        print(f"✅ Passed: {len(self.passed_tests)}")
+        print(f"❌ Failed: {len(self.failed_tests)}")
+        
+        if self.failed_tests:
+            print("\n❌ Failed Tests:")
+            for test in self.failed_tests:
+                print(f"   - {test}")
+        
+        if self.passed_tests:
+            print(f"\n✅ Passed Tests: {len(self.passed_tests)} total")
+        
+        # Analysis of critical issues
+        print("\n🔍 CRITICAL ISSUE ANALYSIS")
+        print("=" * 40)
+        
+        if existing_entry:
+            print(f"✅ Database contains entry with €{existing_entry.get('total', 0)} balance")
+        else:
+            print("❌ No high-balance entry found in database")
+        
+        if stats_data and stats_data.get('total_balance', 0) == 0:
+            print("❌ Stats API showing €0 balance (this is the reported issue)")
+        elif stats_data:
+            print(f"✅ Stats API showing €{stats_data.get('total_balance', 0)} balance")
+        else:
+            print("❌ Stats API not accessible")
+        
+        success_rate = len(self.passed_tests) / (len(self.passed_tests) + len(self.failed_tests)) * 100 if (len(self.passed_tests) + len(self.failed_tests)) > 0 else 0
+        print(f"\n🎯 Success Rate: {success_rate:.1f}%")
+        
+        return len(self.failed_tests) == 0
         """Test POST /api/entries - Create new PnL entries"""
         print("\n=== Testing Entry Creation ===")
         
