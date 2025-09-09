@@ -549,26 +549,35 @@ async def get_chart_data():
     """Get data formatted for charts"""
     try:
         entries = await db.pnl_entries.find().sort("date", 1).to_list(1000)
+        exchanges = await db.exchanges.find({"is_active": True}).to_list(100)
         
         if not entries:
             return {
                 "portfolio_timeline": [],
                 "pnl_timeline": [],
-                "exchange_breakdown": {"kraken": 0, "bitget": 0, "binance": 0}
+                "exchange_breakdown": {}
             }
+        
+        # Create exchange lookup
+        exchange_lookup = {ex["id"]: ex for ex in exchanges}
         
         # Portfolio timeline data
         portfolio_timeline = []
         pnl_timeline = []
         
         for entry in entries:
-            portfolio_timeline.append({
+            timeline_entry = {
                 "date": entry["date"],
-                "total": entry["total"],
-                "kraken": entry["balances"]["kraken"],
-                "bitget": entry["balances"]["bitget"],
-                "binance": entry["balances"]["binance"]
-            })
+                "total": entry["total"]
+            }
+            
+            # Add exchange balances dynamically
+            for balance in entry["balances"]:
+                exchange = exchange_lookup.get(balance["exchange_id"])
+                if exchange:
+                    timeline_entry[exchange["name"]] = balance["amount"]
+            
+            portfolio_timeline.append(timeline_entry)
             
             if entry["pnl_percentage"] != 0:  # Skip first entry with 0 PnL
                 pnl_timeline.append({
@@ -579,11 +588,15 @@ async def get_chart_data():
         
         # Latest exchange breakdown
         latest = entries[-1]
-        exchange_breakdown = {
-            "kraken": latest["balances"]["kraken"],
-            "bitget": latest["balances"]["bitget"],
-            "binance": latest["balances"]["binance"]
-        }
+        exchange_breakdown = {}
+        for balance in latest["balances"]:
+            exchange = exchange_lookup.get(balance["exchange_id"])
+            if exchange:
+                exchange_breakdown[exchange["name"]] = {
+                    "amount": balance["amount"],
+                    "display_name": exchange["display_name"],
+                    "color": exchange["color"]
+                }
         
         return {
             "portfolio_timeline": portfolio_timeline,
