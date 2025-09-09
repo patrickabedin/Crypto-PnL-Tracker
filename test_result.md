@@ -273,14 +273,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Daily Entry Form"
-    - "PnL Dashboard with Stats Cards"
-    - "KPI Progress Visualization"
-    - "Historical Data Table"
-    - "Edit and Delete Functionality"
-  stuck_tasks: []
+    - "Real-time Kraken API Integration"
+    - "Exchange API Key Management CRUD"
+    - "API Key Management Interface"
+  stuck_tasks:
+    - "Real-time Kraken API Integration"
   test_all: false
-  test_priority: "high_first"
+  test_priority: "stuck_first"
 
 agent_communication:
     - agent: "main"
