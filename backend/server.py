@@ -1256,8 +1256,22 @@ async def get_starting_balances(current_user: User = Depends(require_auth)):
         starting_balances = await db.exchange_starting_balances.find({
             "user_id": current_user.id
         }).to_list(length=None)
-        return starting_balances
+        
+        # Convert to proper format, removing MongoDB ObjectId
+        result = []
+        for balance in starting_balances:
+            result.append({
+                "id": balance.get("id", str(balance.get("_id", ""))),
+                "user_id": balance.get("user_id"),
+                "exchange_id": balance.get("exchange_id"),
+                "starting_balance": balance.get("starting_balance"),
+                "starting_date": balance.get("starting_date"),
+                "created_at": balance.get("created_at")
+            })
+        
+        return result
     except Exception as e:
+        logger.error(f"Error getting starting balances: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/starting-balances")
