@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recent Entries Color Coding Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Recent Entries Color Coding Test</h1>
+        
+        <!-- Light Mode Test -->
+        <div class="mb-8">
+            <h2 class="text-lg font-semibold mb-4">Light Mode</h2>
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Recent Entries</h3>
+                </div>
+                
+                <!-- Profitable Entry (Green) -->
+                <div class="px-4 py-4 bg-green-50 transition-colors duration-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-medium text-gray-900 text-sm">2024-01-15</p>
+                            <p class="text-xl font-bold text-gray-900">€4,250</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium text-green-600 bg-green-50">+2.45%</span>
+                            <p class="text-sm mt-1 text-green-600">+€102</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500">Profitable trading day</p>
+                </div>
+                
+                <!-- Loss Entry (Red) -->
+                <div class="px-4 py-4 bg-red-50 transition-colors duration-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-medium text-gray-900 text-sm">2024-01-14</p>
+                            <p class="text-xl font-bold text-gray-900">€4,148</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium text-red-600 bg-red-50">-1.85%</span>
+                            <p class="text-sm mt-1 text-red-600">-€78</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500">Loss trading day</p>
+                </div>
+                
+                <!-- Zero PnL Entry (Green - as per implementation pnl_amount >= 0) -->
+                <div class="px-4 py-4 bg-green-50 transition-colors duration-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-medium text-gray-900 text-sm">2024-01-13</p>
+                            <p class="text-xl font-bold text-gray-900">€4,226</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-50">0.00%</span>
+                            <p class="text-sm mt-1 text-green-600">€0</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500">Breakeven day (treated as profitable)</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dark Mode Test -->
+        <div class="dark">
+            <div class="bg-gray-900 p-6 rounded-xl">
+                <h2 class="text-lg font-semibold mb-4 text-white">Dark Mode</h2>
+                <div class="bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-700">
+                        <h3 class="text-lg font-semibold text-white">Recent Entries</h3>
+                    </div>
+                    
+                    <!-- Profitable Entry (Green) -->
+                    <div class="px-4 py-4 bg-green-900/20 transition-colors duration-200">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="font-medium text-white text-sm">2024-01-15</p>
+                                <p class="text-xl font-bold text-white">€4,250</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium text-green-400 bg-green-900/20">+2.45%</span>
+                                <p class="text-sm mt-1 text-green-400">+€102</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400">Profitable trading day</p>
+                    </div>
+                    
+                    <!-- Loss Entry (Red) -->
+                    <div class="px-4 py-4 bg-red-900/20 transition-colors duration-200">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="font-medium text-white text-sm">2024-01-14</p>
+                                <p class="text-xl font-bold text-white">€4,148</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium text-red-400 bg-red-900/20">-1.85%</span>
+                                <p class="text-sm mt-1 text-red-400">-€78</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400">Loss trading day</p>
+                    </div>
+                    
+                    <!-- Zero PnL Entry (Green) -->
+                    <div class="px-4 py-4 bg-green-900/20 transition-colors duration-200">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="font-medium text-white text-sm">2024-01-13</p>
+                                <p class="text-xl font-bold text-white">€4,226</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium text-gray-400 bg-gray-700">0.00%</span>
+                                <p class="text-sm mt-1 text-green-400">€0</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400">Breakeven day (treated as profitable)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toggle Button for Testing -->
+        <div class="mt-8 text-center">
+            <button onclick="toggleDarkMode()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Toggle Dark Mode
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+    </script>
+</body>
+</html>
