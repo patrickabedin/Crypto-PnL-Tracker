@@ -176,9 +176,93 @@ async def root():
     return {"message": "Crypto PnL Tracker API"}
 
 # Authentication Endpoints
+# Authentication Endpoints
+@api_router.post("/auth/google")
+async def authenticate_with_google(request: Request, response: Response):
+    """Authenticate user with Google OAuth token"""
+    try:
+        data = await request.json()
+        token = data.get("token")
+        
+        if not token:
+            raise HTTPException(status_code=400, detail="Google token required")
+        
+        # Verify Google token
+        try:
+            # You need to set your Google Client ID in environment variables
+            GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', 'your-google-client-id.apps.googleusercontent.com')
+            
+            idinfo = id_token.verify_oauth2_token(
+                token, 
+                requests.Request(), 
+                GOOGLE_CLIENT_ID
+            )
+            
+            # Get user info from Google token
+            email = idinfo.get('email')
+            name = idinfo.get('name')
+            picture = idinfo.get('picture', '')
+            
+            if not email:
+                raise HTTPException(status_code=400, detail="Invalid Google token")
+                
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail="Invalid Google token")
+        
+        # Check if user exists
+        existing_user = await db.users.find_one({"email": email})
+        
+        if not existing_user:
+            # Create new user
+            user = User(
+                email=email,
+                name=name,
+                picture=picture
+            )
+            await db.users.insert_one(user.dict())
+            user_id = user.id
+        else:
+            user_id = existing_user["id"]
+            user = User(**existing_user)
+        
+        # Create session token
+        session_token = str(uuid.uuid4())
+        expires_at = datetime.utcnow() + timedelta(days=7)
+        
+        user_session = UserSession(
+            user_id=user_id,
+            session_token=session_token,
+            expires_at=expires_at
+        )
+        
+        await db.user_sessions.insert_one(user_session.dict())
+        
+        # Set HttpOnly cookie
+        response.set_cookie(
+            key="session_token",
+            value=session_token,
+            max_age=7 * 24 * 60 * 60,  # 7 days
+            httponly=True,
+            secure=True,
+            samesite="none",
+            path="/"
+        )
+        
+        return {
+            "user": user.dict(),
+            "session_token": session_token,
+            "expires_at": expires_at.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google authentication error: {e}")
+        raise HTTPException(status_code=500, detail="Authentication failed")
+
 @api_router.post("/auth/profile")
 async def authenticate_user(request: Request, response: Response):
-    """Authenticate user with session ID from OAuth provider"""
+    """Legacy endpoint - Authenticate user with session ID from OAuth provider"""
     try:
         data = await request.json()
         session_id = data.get("session_id")
