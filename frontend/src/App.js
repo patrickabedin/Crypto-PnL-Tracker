@@ -196,15 +196,16 @@ const CryptoPnLTracker = () => {
     try {
       setLoading(true);
       
-      // Initialize exchanges first
-      await initializeExchanges();
+      // Initialize defaults first
+      await initializeDefaults();
       
-      const [entriesRes, statsRes, chartRes, monthlyRes, exchangesRes] = await Promise.all([
+      const [entriesRes, statsRes, chartRes, monthlyRes, exchangesRes, kpisRes] = await Promise.all([
         axios.get(`${API}/entries`),
         axios.get(`${API}/stats`),
         axios.get(`${API}/chart-data`),
         axios.get(`${API}/monthly-performance`),
-        axios.get(`${API}/exchanges`)
+        axios.get(`${API}/exchanges`),
+        axios.get(`${API}/kpis`)
       ]);
       
       setEntries(entriesRes.data);
@@ -212,6 +213,7 @@ const CryptoPnLTracker = () => {
       setChartData(chartRes.data);
       setMonthlyPerformance(monthlyRes.data);
       setExchanges(exchangesRes.data);
+      setKPIs(kpisRes.data);
       
       // Initialize form balances with exchanges
       const initialBalances = exchangesRes.data.map(exchange => ({
