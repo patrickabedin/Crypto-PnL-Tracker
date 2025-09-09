@@ -265,6 +265,18 @@ frontend:
           agent: "testing"
           comment: "🚨 CRITICAL CONFIGURATION ISSUE: Google OAuth Client ID (94627322598-ooc0a20strhtn85t0v3sugpuglid5v8i.apps.googleusercontent.com) is NOT configured to allow the current domain (crypto-profit-dash-1.preview.emergentagent.com) as an authorized JavaScript origin. Console error: '[GSI_LOGGER]: The given origin is not allowed for the given client ID.' All OAuth components work correctly: Google script loads (✅), button renders with proper HTML (✅), backend endpoints respond correctly (✅), but authentication is blocked by Google Cloud Console configuration. SOLUTION: Add 'https://pnldashboard.preview.emergentagent.com' to 'Authorized JavaScript origins' in Google Cloud Console OAuth 2.0 Client ID settings."
 
+  - task: "Recent Entries Color Coding by Profit/Loss"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Implemented color-coding for Recent Entries rows based on profit/loss. Replaced alternating row colors with: green background (bg-green-50 dark:bg-green-900/20) for profitable entries (pnl_amount >= 0) and red background (bg-red-50 dark:bg-red-900/20) for loss entries (pnl_amount < 0). Applied to line 1708 in Recent Entries section. Colors work in both dark and light modes with good text readability."
+
   - task: "Daily Entry Form"
     implemented: true
     working: "NA"  # cannot test without authentication
