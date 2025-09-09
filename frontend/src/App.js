@@ -1653,7 +1653,6 @@ const CryptoPnLTracker = () => {
             </div>
           </div>
         </div>
-      )}
     </div>
   );
 };
