@@ -184,7 +184,7 @@ async def authenticate_user(request: Request, response: Response):
         if not session_id:
             raise HTTPException(status_code=400, detail="Session ID required")
         
-        # Call Emergent auth API
+        # Call OAuth auth API
         async with aiohttp.ClientSession() as session:
             headers = {"X-Session-ID": session_id}
             async with session.get(
