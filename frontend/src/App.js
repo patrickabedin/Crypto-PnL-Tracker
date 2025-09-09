@@ -387,6 +387,106 @@ const CryptoPnLTracker = () => {
           </div>
         </div>
 
+        {/* Charts Section */}
+        {showCharts && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
+            {/* Portfolio Timeline Chart */}
+            {getPortfolioChartData() && (
+              <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Portfolio Timeline</h3>
+                <div className="h-80">
+                  <Line 
+                    data={getPortfolioChartData()} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: 'top',
+                        },
+                        title: {
+                          display: false,
+                        },
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: false,
+                          ticks: {
+                            callback: function(value) {
+                              return '€' + value.toLocaleString();
+                            }
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Exchange Breakdown Chart */}
+            {getExchangeBreakdownData() && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Exchange Breakdown</h3>
+                <div className="h-80">
+                  <Pie 
+                    data={getExchangeBreakdownData()} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: function(context) {
+                              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                              const percentage = ((context.parsed / total) * 100).toFixed(1);
+                              return `${context.label}: €${context.parsed.toLocaleString()} (${percentage}%)`;
+                            }
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* PnL Performance Chart */}
+            {getPnLChartData() && (
+              <div className="lg:col-span-2 xl:col-span-3 bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily PnL Performance</h3>
+                <div className="h-80">
+                  <Bar 
+                    data={getPnLChartData()} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          display: false,
+                        },
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: {
+                            callback: function(value) {
+                              return value + '%';
+                            }
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* KPI Progress */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">KPI Progress</h3>
