@@ -573,6 +573,8 @@ async def get_pnl_entries(current_user: User = Depends(require_auth), limit: int
         for entry in entries:
             # Convert balances back to Pydantic models
             entry["balances"] = [DynamicBalance(**balance) for balance in entry["balances"]]
+            # Convert KPI progress back to Pydantic models
+            entry["kpi_progress"] = [DynamicKPI(**kpi) for kpi in entry.get("kpi_progress", [])]
             result.append(PnLEntry(**entry))
         return result
     except Exception as e:
@@ -589,6 +591,8 @@ async def get_pnl_entry(entry_id: str, current_user: User = Depends(require_auth
             raise HTTPException(status_code=404, detail="Entry not found")
         # Convert balances back to Pydantic models
         entry["balances"] = [DynamicBalance(**balance) for balance in entry["balances"]]
+        # Convert KPI progress back to Pydantic models  
+        entry["kpi_progress"] = [DynamicKPI(**kpi) for kpi in entry.get("kpi_progress", [])]
         return PnLEntry(**entry)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
