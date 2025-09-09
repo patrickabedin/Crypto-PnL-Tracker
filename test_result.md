@@ -167,9 +167,9 @@ backend:
 
   - task: "Real-time Kraken API Integration"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -182,6 +182,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ CRITICAL ISSUE RESOLVED: Fixed stats API crash that was causing balance display to show €0. Root cause: Stats endpoint was trying to access non-existent kpi_5k/kpi_10k/kpi_15k fields instead of kpi_progress array. Database contains correct €57,699.48 entry. Stats API now properly extracts KPI progress from new data structure and filters by user_id. Kraken API endpoints require authentication (correct behavior). All backend logic is working correctly."
+        - working: false
+          agent: "testing"
+          comment: "🔴 AUTO-ENTRY CREATION ISSUE IDENTIFIED: Root cause found - Kraken API keys are being rate-limited with 'EGeneral:Temporary lockout' error. Direct Kraken API test confirms keys are valid but hitting rate limits. All backend endpoints (/api/exchanges/kraken/balance, /api/exchanges/sync, /api/entries/auto-create) correctly require authentication. The 'Sync completed! 0/3 exchanges synced successfully' message indicates Kraken sync is failing due to rate limiting, causing auto-entry creation to fail with 'Error creating entry from sync data'. Backend implementation is correct - issue is external API rate limiting."
 
   - task: "Exchange API Key Management CRUD"
     implemented: true
