@@ -372,6 +372,127 @@ async def get_portfolio_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/monthly-performance")
+async def get_monthly_performance():
+    """Get monthly performance data showing best/worst months"""
+    try:
+        pipeline = [
+            {"$match": {"pnl_percentage": {"$ne": 0}}},
+            {"$addFields": {
+                "year": {"$year": {"$dateFromString": {"dateString": "$date"}}},
+                "month": {"$month": {"$dateFromString": {"dateString": "$date"}}}
+            }},
+            {"$group": {
+                "_id": {"year": "$year", "month": "$month"},
+                "monthly_pnl_percentage": {"$sum": "$pnl_percentage"},
+                "monthly_pnl_amount": {"$sum": "$pnl_amount"},
+                "trading_days": {"$sum": 1},
+                "avg_daily_pnl": {"$avg": "$pnl_percentage"}
+            }},
+            {"$addFields": {
+                "month_name": {
+                    "$switch": {
+                        "branches": [
+                            {"case": {"$eq": ["$_id.month", 1]}, "then": "January"},
+                            {"case": {"$eq": ["$_id.month", 2]}, "then": "February"},
+                            {"case": {"$eq": ["$_id.month", 3]}, "then": "March"},
+                            {"case": {"$eq": ["$_id.month", 4]}, "then": "April"},
+                            {"case": {"$eq": ["$_id.month", 5]}, "then": "May"},
+                            {"case": {"$eq": ["$_id.month", 6]}, "then": "June"},
+                            {"case": {"$eq": ["$_id.month", 7]}, "then": "July"},
+                            {"case": {"$eq": ["$_id.month", 8]}, "then": "August"},
+                            {"case": {"$eq": ["$_id.month", 9]}, "then": "September"},
+                            {"case": {"$eq": ["$_id.month", 10]}, "then": "October"},
+                            {"case": {"$eq": ["$_id.month", 11]}, "then": "November"},
+                            {"case": {"$eq": ["$_id.month", 12]}, "then": "December"}
+                        ],
+                        "default": "Unknown"
+                    }
+                }
+            }},
+            {"$sort": {"_id.year": -1, "_id.month": -1}}
+        ]
+        
+        monthly_data = await db.pnl_entries.aggregate(pipeline).to_list(100)
+        
+        if not monthly_data:
+            return {
+                "monthly_performance": [],
+                "best_month": None,
+                "worst_month": None,
+                "yearly_summary": []
+            }
+        
+        # Find best and worst months
+        best_month = max(monthly_data, key=lambda x: x["monthly_pnl_percentage"])
+        worst_month = min(monthly_data, key=lambda x: x["monthly_pnl_percentage"])
+        
+        # Prepare monthly performance data
+        performance_data = []
+        for month in monthly_data:
+            performance_data.append({
+                "year": month["_id"]["year"],
+                "month": month["_id"]["month"],
+                "month_name": month["month_name"],
+                "monthly_pnl_percentage": round(month["monthly_pnl_percentage"], 2),
+                "monthly_pnl_amount": round(month["monthly_pnl_amount"], 2),
+                "trading_days": month["trading_days"],
+                "avg_daily_pnl": round(month["avg_daily_pnl"], 2),
+                "display_name": f"{month['month_name']} {month['_id']['year']}"
+            })
+        
+        # Yearly summary
+        yearly_pipeline = [
+            {"$match": {"pnl_percentage": {"$ne": 0}}},
+            {"$addFields": {
+                "year": {"$year": {"$dateFromString": {"dateString": "$date"}}}
+            }},
+            {"$group": {
+                "_id": "$year",
+                "yearly_pnl_percentage": {"$sum": "$pnl_percentage"},
+                "yearly_pnl_amount": {"$sum": "$pnl_amount"},
+                "trading_days": {"$sum": 1},
+                "months_active": {"$addToSet": {"$month": {"$dateFromString": {"dateString": "$date"}}}}
+            }},
+            {"$addFields": {
+                "months_count": {"$size": "$months_active"},
+                "avg_monthly_pnl": {"$divide": ["$yearly_pnl_percentage", {"$size": "$months_active"}]}
+            }},
+            {"$sort": {"_id": -1}}
+        ]
+        
+        yearly_data = await db.pnl_entries.aggregate(yearly_pipeline).to_list(10)
+        yearly_summary = []
+        for year in yearly_data:
+            yearly_summary.append({
+                "year": year["_id"],
+                "yearly_pnl_percentage": round(year["yearly_pnl_percentage"], 2),
+                "yearly_pnl_amount": round(year["yearly_pnl_amount"], 2),
+                "trading_days": year["trading_days"],
+                "months_active": year["months_count"],
+                "avg_monthly_pnl": round(year["avg_monthly_pnl"], 2)
+            })
+        
+        return {
+            "monthly_performance": performance_data,
+            "best_month": {
+                "display_name": f"{best_month['month_name']} {best_month['_id']['year']}",
+                "pnl_percentage": round(best_month["monthly_pnl_percentage"], 2),
+                "pnl_amount": round(best_month["monthly_pnl_amount"], 2),
+                "trading_days": best_month["trading_days"]
+            },
+            "worst_month": {
+                "display_name": f"{worst_month['month_name']} {worst_month['_id']['year']}",
+                "pnl_percentage": round(worst_month["monthly_pnl_percentage"], 2),
+                "pnl_amount": round(worst_month["monthly_pnl_amount"], 2),
+                "trading_days": worst_month["trading_days"]
+            },
+            "yearly_summary": yearly_summary
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/export/csv")
 async def export_entries_csv():
     """Export all entries to CSV format"""
