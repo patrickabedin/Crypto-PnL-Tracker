@@ -988,14 +988,16 @@ class CryptoPnLTester:
 if __name__ == "__main__":
     tester = CryptoPnLTester()
     
-    # Run auto-entry creation debug tests
-    print("🎯 RUNNING AUTO-ENTRY CREATION DEBUG TESTS")
-    print("=" * 60)
-    debug_success = tester.run_auto_entry_debug_tests()
+    # Run final debugging tests to resolve persistent balance and sync issues
+    print("🎯 FINAL DEBUGGING ATTEMPT - RESOLVING PERSISTENT BALANCE & SYNC ISSUES")
+    print("=" * 80)
+    debug_success = tester.run_final_debugging_tests()
     
     if debug_success:
-        print("\n🎉 Auto-entry creation debug tests completed successfully!")
+        print("\n🎉 Final debugging tests completed successfully!")
+        print("✅ All critical issues resolved or identified for fixing")
         sys.exit(0)
     else:
-        print("\n⚠️ Some auto-entry creation tests failed. Check the output above for details.")
+        print("\n⚠️ Critical issues remain unresolved.")
+        print("📋 Check the detailed analysis above for specific problems and recommendations")
         sys.exit(1)
