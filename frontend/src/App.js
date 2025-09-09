@@ -1670,21 +1670,21 @@ const CryptoPnLTracker = () => {
         </div>
 
       {/* Mobile-Optimized Entries List */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Entries</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden transition-colors duration-200">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Entries</h2>
         </div>
         
         {/* Mobile Entry Cards */}
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
           {entries.slice(0, 10).map((entry, index) => (
-            <div key={entry.id} className={`px-4 py-4 ${index % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}>
+            <div key={entry.id} className={`px-4 py-4 ${index % 2 === 1 ? 'bg-gray-50 dark:bg-gray-700/50' : 'bg-white dark:bg-gray-800'} transition-colors duration-200`}>
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">
                     {new Date(entry.date).toLocaleDateString()}
                   </p>
-                  <p className="text-xl font-bold text-gray-900">
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">
                     {formatCurrency(entry.total)}
                   </p>
                 </div>
@@ -1692,14 +1692,14 @@ const CryptoPnLTracker = () => {
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPnLColor(entry.pnl_percentage)}`}>
                     {entry.pnl_percentage > 0 ? '+' : ''}{entry.pnl_percentage.toFixed(2)}%
                   </span>
-                  <p className={`text-sm mt-1 ${entry.pnl_amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className={`text-sm mt-1 ${entry.pnl_amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {entry.pnl_amount > 0 ? '+' : ''}{formatCurrency(entry.pnl_amount)}
                   </p>
                 </div>
               </div>
               
               {/* Exchange Balances */}
-              <div className="grid grid-cols-3 gap-2 text-xs text-gray-600 mb-2">
+              <div className="grid grid-cols-3 gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
                 {exchanges.map((exchange) => (
                   <div key={exchange.id}>
                     <span className="font-medium">{exchange.display_name}:</span>
@@ -1709,19 +1709,19 @@ const CryptoPnLTracker = () => {
               </div>
               
               {entry.notes && (
-                <p className="text-xs text-gray-500 mb-2">{entry.notes}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{entry.notes}</p>
               )}
               
               <div className="flex space-x-3 text-xs">
                 <button
                   onClick={() => startEditing(entry)}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDeleteEntry(entry.id)}
-                  className="text-red-600 hover:text-red-800"
+                  className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors duration-200"
                 >
                   Delete
                 </button>
@@ -1732,7 +1732,7 @@ const CryptoPnLTracker = () => {
         
         {entries.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No entries yet. Add your first entry to get started!</p>
+            <p className="text-gray-500 dark:text-gray-400">No entries yet. Add your first entry to get started!</p>
           </div>
         )}
       </div>
