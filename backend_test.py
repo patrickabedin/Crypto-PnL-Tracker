@@ -849,43 +849,42 @@ class CryptoPnLTester:
         print("   Note: Full API testing requires valid authentication token")
         print("   Current tests will show authentication errors for protected endpoints")
     
-    def run_auto_entry_debug_tests(self):
-        """Run comprehensive tests to debug the auto-entry creation issue"""
-        print("🚀 Starting Auto-Entry Creation Debug Tests")
+    def run_final_debugging_tests(self):
+        """Run the final debugging attempt to resolve persistent balance and sync issues"""
+        print("🚀 FINAL DEBUGGING ATTEMPT - Comprehensive Balance & Sync Issue Resolution")
         print(f"🔗 Testing against: {self.base_url}")
         print(f"🔑 Using Kraken API Key: {KRAKEN_API_KEY[:8]}...")
-        print("=" * 70)
+        print(f"👤 Target User ID: {TEST_USER_ID[:8]}...")
+        print("=" * 80)
         
         # Test API connection first
         if not self.test_api_connection():
             print("\n❌ API connection failed. Cannot proceed with tests.")
             return False
         
-        # Test authentication flow
-        self.test_authentication_flow()
-        
-        print("\n🔍 AUTO-ENTRY CREATION DEBUG TESTS")
+        print("\n🔍 CRITICAL DEBUGGING TESTS")
         print("=" * 50)
         
-        # 1. Test direct Kraken API to verify keys work
-        kraken_direct = self.test_direct_kraken_api()
+        # CRITICAL TEST 1: Database Entry Verification
+        database_ok = self.test_database_entry_verification()
         
-        # 2. Test backend Kraken balance endpoint
-        kraken_backend = self.test_kraken_balance_endpoint()
+        # CRITICAL TEST 2: Kraken API Integration Deep Dive
+        kraken_ok = self.test_kraken_api_integration_deep_dive()
         
-        # 3. Test API key storage and retrieval
-        api_keys_working = self.test_api_key_storage_retrieval()
+        # CRITICAL TEST 3: Sync Process Investigation
+        sync_ok = self.test_sync_process_investigation()
         
-        # 4. Test exchange sync endpoint
-        sync_data = self.test_exchange_sync_endpoint()
+        # CRITICAL TEST 4: Stats API Verification
+        stats_ok = self.test_stats_api_verification()
         
-        # 5. Test auto-create entry endpoint (the main issue)
-        auto_create_data = self.test_auto_create_entry_endpoint()
+        # Additional Test: Auto-Create Entry Investigation
+        print("\n=== Additional Test: Auto-Create Entry Investigation ===")
+        auto_create_ok = self.test_auto_create_entry_investigation()
         
         # Print comprehensive summary
-        print("\n" + "=" * 70)
-        print("📊 AUTO-ENTRY CREATION DEBUG SUMMARY")
-        print("=" * 70)
+        print("\n" + "=" * 80)
+        print("📊 FINAL DEBUGGING SUMMARY")
+        print("=" * 80)
         print(f"✅ Passed: {len(self.passed_tests)}")
         print(f"❌ Failed: {len(self.failed_tests)}")
         
@@ -894,70 +893,97 @@ class CryptoPnLTester:
             for test in self.failed_tests:
                 print(f"   - {test}")
         
-        # Detailed analysis
-        print("\n🔍 ROOT CAUSE ANALYSIS")
+        # Critical Issues Summary
+        if self.critical_issues:
+            print(f"\n🔴 CRITICAL ISSUES IDENTIFIED ({len(self.critical_issues)}):")
+            for i, issue in enumerate(self.critical_issues, 1):
+                print(f"   {i}. {issue}")
+        
+        # Root Cause Analysis
+        print("\n🎯 ROOT CAUSE ANALYSIS")
+        print("=" * 50)
+        
+        # Balance Display Issue Analysis
+        if self.balance_found is not None:
+            if self.balance_found == 57699.48:
+                print("✅ Expected balance €57,699.48 found in system")
+            elif self.balance_found == 0:
+                print("🔴 CONFIRMED: Balance shows €0 instead of expected €57,699.48")
+                print("   → This is the main reported issue")
+            else:
+                print(f"⚠️ Different balance found: €{self.balance_found} (expected €57,699.48)")
+        else:
+            print("❓ Could not determine balance due to authentication issues")
+        
+        # Sync Issue Analysis
+        if not sync_ok:
+            print("🔴 CONFIRMED: Sync process failing - explains '0/3 exchanges synced successfully'")
+        else:
+            print("✅ Sync process working correctly")
+        
+        # Auto-Create Entry Analysis
+        if not auto_create_ok:
+            print("🔴 CONFIRMED: Auto-create entry failing - explains 'Error creating entry from sync data'")
+        else:
+            print("✅ Auto-create entry working correctly")
+        
+        # Authentication Analysis
+        auth_required_count = len([test for test in self.failed_tests if "Authentication required" in str(test)])
+        if auth_required_count > 0:
+            print(f"🔐 AUTHENTICATION BARRIER: {auth_required_count} tests blocked by authentication")
+            print("   → This prevents comprehensive testing of the reported issues")
+            print("   → The core problem may be authentication-related user filtering")
+        
+        # Final Diagnosis
+        print("\n🏁 FINAL DIAGNOSIS")
         print("=" * 40)
         
-        if kraken_direct:
-            print(f"✅ Direct Kraken API works - Balance: €{kraken_direct.get('total_eur', 0):.2f}")
+        if len(self.critical_issues) == 0:
+            print("✅ No critical issues found - system appears to be working correctly")
+            print("   → Issues may be intermittent or authentication-specific")
+        elif "Cannot verify €57,699.48 entry without authentication" in str(self.critical_issues):
+            print("🔐 PRIMARY ISSUE: Authentication prevents verification of balance display")
+            print("   → Need valid user session to test balance and entry retrieval")
+            print("   → Backend APIs are correctly secured but this blocks testing")
+        elif any("rate limit" in issue.lower() for issue in self.critical_issues):
+            print("⏱️ PRIMARY ISSUE: Kraken API rate limiting causing sync failures")
+            print("   → This explains the '0/3 exchanges synced successfully' message")
+            print("   → Backend rate limiting protection needs improvement")
         else:
-            print("❌ Direct Kraken API failed - Check API keys")
+            print("🔍 MULTIPLE ISSUES: Several critical problems identified")
+            print("   → See critical issues list above for details")
         
-        if kraken_backend:
-            balance = kraken_backend.get('balance_eur', 0)
-            print(f"✅ Backend Kraken endpoint works - Balance: €{balance}")
-        else:
-            print("❌ Backend Kraken endpoint failed - Check authentication or backend implementation")
-        
-        if api_keys_working:
-            print("✅ API key storage/retrieval working")
-        else:
-            print("❌ API key storage/retrieval failed - Check authentication")
-        
-        if sync_data:
-            sync_results = sync_data.get('sync_results', {})
-            kraken_sync = sync_results.get('kraken', {})
-            if kraken_sync.get('success'):
-                print(f"✅ Exchange sync works - Kraken: €{kraken_sync.get('balance', 0)}")
-            else:
-                print(f"❌ Exchange sync failed - Kraken error: {kraken_sync.get('error', 'Unknown')}")
-        else:
-            print("❌ Exchange sync failed - Check authentication or implementation")
-        
-        if auto_create_data:
-            message = auto_create_data.get('message', '')
-            if 'created successfully' in message:
-                print(f"✅ Auto-create entry works - Balance: €{auto_create_data.get('total_balance', 0)}")
-            elif 'already exists' in message:
-                print("ℹ️ Auto-create entry: Entry for today already exists")
-            else:
-                print(f"⚠️ Auto-create entry: Unexpected response - {message}")
-        else:
-            print("❌ Auto-create entry failed - This is the main issue")
-        
-        # Specific issue analysis
-        print("\n🎯 SPECIFIC ISSUE ANALYSIS")
+        # Recommendations
+        print("\n💡 RECOMMENDATIONS")
         print("=" * 40)
         
-        if not kraken_direct:
-            print("🔴 CRITICAL: Kraken API keys don't work directly")
-            print("   → Check if keys are correct and have proper permissions")
-        elif not kraken_backend:
-            print("🔴 CRITICAL: Backend can't access Kraken API")
-            print("   → Check authentication or backend Kraken integration")
-        elif not sync_data or not sync_data.get('sync_results', {}).get('kraken', {}).get('success'):
-            print("🔴 CRITICAL: Exchange sync failing for Kraken")
-            print("   → Check sync endpoint implementation")
-        elif not auto_create_data:
-            print("🔴 CRITICAL: Auto-create entry endpoint failing")
-            print("   → This is the reported issue - check auto-create implementation")
-        else:
-            print("✅ All components working - Issue may be intermittent or authentication-related")
+        if "Cannot verify €57,699.48 entry without authentication" in str(self.critical_issues):
+            print("1. 🔑 PRIORITY: Fix Google OAuth authentication to enable proper testing")
+            print("2. 📊 Verify user-specific data filtering in stats and entries endpoints")
+            print("3. 🔍 Check if €57,699.48 entry exists but belongs to different user")
+        
+        if any("rate limit" in issue.lower() for issue in self.critical_issues):
+            print("1. ⏱️ PRIORITY: Implement better Kraken API rate limiting with exponential backoff")
+            print("2. 💾 Add caching mechanism to reduce API calls")
+            print("3. 🔄 Implement graceful fallback to cached data when rate limited")
+        
+        if not auto_create_ok:
+            print("1. 🛠️ PRIORITY: Fix auto-create entry endpoint error handling")
+            print("2. 📝 Add better error messages for sync data issues")
+            print("3. 🔍 Debug the specific 'Error creating entry from sync data' message")
         
         success_rate = len(self.passed_tests) / (len(self.passed_tests) + len(self.failed_tests)) * 100 if (len(self.passed_tests) + len(self.failed_tests)) > 0 else 0
-        print(f"\n🎯 Success Rate: {success_rate:.1f}%")
+        print(f"\n🎯 Overall Success Rate: {success_rate:.1f}%")
         
-        return len(self.failed_tests) == 0
+        # Determine if issues can be fixed or need revert to manual entries
+        if len(self.critical_issues) > 3 or any("rate limit" in issue.lower() for issue in self.critical_issues):
+            print("\n⚠️ RECOMMENDATION: Consider reverting to manual entries as user requested")
+            print("   → Kraken API integration has persistent issues")
+            print("   → Manual entry system was working correctly")
+        else:
+            print("\n🔧 RECOMMENDATION: Issues are fixable - continue with integration")
+        
+        return len(self.critical_issues) == 0
 
 if __name__ == "__main__":
     tester = CryptoPnLTester()
