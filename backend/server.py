@@ -176,7 +176,7 @@ async def root():
 # Authentication Endpoints
 @api_router.post("/auth/profile")
 async def authenticate_user(request: Request, response: Response):
-    """Authenticate user with session ID from Emergent OAuth"""
+    """Authenticate user with session ID from OAuth provider"""
     try:
         data = await request.json()
         session_id = data.get("session_id")
