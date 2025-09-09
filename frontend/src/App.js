@@ -1236,6 +1236,84 @@ const CryptoPnLTracker = () => {
           </div>
         </div>
 
+        {/* Smart Alerts Panel */}
+        {smartAlerts.length > 0 && (
+          <div className="mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm transition-colors duration-200">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    🧠 <span className="ml-2">Smart Insights</span>
+                  </h3>
+                  <button 
+                    onClick={() => setShowAlerts(!showAlerts)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                  >
+                    {showAlerts ? 'Hide' : `Show ${smartAlerts.length}`}
+                  </button>
+                </div>
+              </div>
+              
+              {showAlerts && (
+                <div className="p-4 space-y-3">
+                  {smartAlerts
+                    .sort((a, b) => {
+                      const priorityOrder = { high: 3, medium: 2, low: 1 };
+                      return priorityOrder[b.priority] - priorityOrder[a.priority];
+                    })
+                    .slice(0, 5) // Show top 5 alerts
+                    .map((alert) => (
+                      <div 
+                        key={alert.id}
+                        className={`p-4 rounded-xl border ${
+                          alert.type === 'celebration' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
+                          alert.type === 'success' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' :
+                          alert.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' :
+                          'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                        } transition-colors duration-200`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <span className="text-xl flex-shrink-0">{alert.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`font-semibold text-sm ${
+                              alert.type === 'celebration' ? 'text-green-800 dark:text-green-200' :
+                              alert.type === 'success' ? 'text-blue-800 dark:text-blue-200' :
+                              alert.type === 'warning' ? 'text-yellow-800 dark:text-yellow-200' :
+                              'text-gray-800 dark:text-gray-200'
+                            }`}>
+                              {alert.title}
+                            </h4>
+                            <p className={`text-sm mt-1 ${
+                              alert.type === 'celebration' ? 'text-green-700 dark:text-green-300' :
+                              alert.type === 'success' ? 'text-blue-700 dark:text-blue-300' :
+                              alert.type === 'warning' ? 'text-yellow-700 dark:text-yellow-300' :
+                              'text-gray-600 dark:text-gray-300'
+                            }`}>
+                              {alert.message}
+                            </p>
+                          </div>
+                          {alert.priority === 'high' && (
+                            <div className="flex-shrink-0">
+                              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    
+                  {smartAlerts.length > 5 && (
+                    <div className="text-center pt-2">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        +{smartAlerts.length - 5} more insights available
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ROI Performance Cards */}
         {(stats.total_capital_deposited > 0 || stats.total_starting_balance > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
