@@ -595,6 +595,125 @@ const CryptoPnLTracker = () => {
     }
   }, [entries]);
 
+  // Smart Alerts Functions
+  const generateSmartAlerts = () => {
+    const alerts = [];
+    const currentBalance = stats.total_balance || 0;
+    
+    // Goal Proximity Alerts
+    const kpiTargets = [5000, 10000, 15000, 20000];
+    kpiTargets.forEach(target => {
+      const progress = currentBalance;
+      const remaining = target - progress;
+      const percentComplete = (progress / target) * 100;
+      
+      if (percentComplete >= 95 && percentComplete < 100) {
+        alerts.push({
+          id: `goal-close-${target}`,
+          type: 'success',
+          icon: '🎯',
+          title: `So Close to ${formatCurrency(target)}!`,
+          message: `You're only ${formatCurrency(remaining)} away from your ${formatCurrency(target)} goal. That's just ${(100 - percentComplete).toFixed(1)}% to go!`,
+          priority: 'high'
+        });
+      } else if (percentComplete >= 100) {
+        const excess = progress - target;
+        alerts.push({
+          id: `goal-achieved-${target}`,
+          type: 'celebration',
+          icon: '🎉',
+          title: `${formatCurrency(target)} Goal Achieved!`,
+          message: `Congratulations! You've exceeded your ${formatCurrency(target)} goal by ${formatCurrency(excess)}. Time to set a new target!`,
+          priority: 'high'
+        });
+      }
+    });
+
+    // Performance Streak Alerts
+    const recentEntries = entries.slice(-7); // Last 7 days
+    const positiveStreak = recentEntries.reduce((streak, entry) => {
+      return entry.pnl_percentage > 0 ? streak + 1 : 0;
+    }, 0);
+    
+    if (positiveStreak >= 3) {
+      alerts.push({
+        id: 'positive-streak',
+        type: 'success',
+        icon: '🔥',
+        title: `${positiveStreak} Day Win Streak!`,
+        message: `You're on fire! ${positiveStreak} consecutive days of positive returns. Keep up the great work!`,
+        priority: 'medium'
+      });
+    }
+
+    // Recovery Alerts
+    if (stats.daily_pnl > 0 && currentBalance < (stats.total_capital_deposited || stats.total_starting_balance || 0)) {
+      const deficit = (stats.total_capital_deposited || stats.total_starting_balance || 0) - currentBalance;
+      const recoveryPercent = ((stats.daily_pnl) / deficit * 100);
+      if (recoveryPercent > 1) {
+        alerts.push({
+          id: 'recovery-progress',
+          type: 'info',
+          icon: '📈',
+          title: 'Recovery in Progress',
+          message: `Great day! Today's gain of ${formatCurrency(stats.daily_pnl)} gets you ${recoveryPercent.toFixed(1)}% closer to breaking even.`,
+          priority: 'medium'
+        });
+      }
+    }
+
+    // Loss Warning Alerts
+    if (stats.daily_pnl < -1000) {
+      alerts.push({
+        id: 'large-loss',
+        type: 'warning',
+        icon: '⚠️',
+        title: 'Significant Daily Loss',
+        message: `Today's loss of ${formatCurrency(Math.abs(stats.daily_pnl))} is substantial. Consider reviewing your risk management strategy.`,
+        priority: 'high'
+      });
+    }
+
+    // Milestone Alerts
+    const milestones = [1000, 2500, 5000, 7500, 10000, 15000, 20000, 25000, 50000];
+    milestones.forEach(milestone => {
+      if (currentBalance >= milestone && currentBalance < milestone + 500) {
+        alerts.push({
+          id: `milestone-${milestone}`,
+          type: 'celebration',
+          icon: '🏆',
+          title: `${formatCurrency(milestone)} Milestone Reached!`,
+          message: `Awesome achievement! Your portfolio has reached ${formatCurrency(milestone)}. You're building real wealth!`,
+          priority: 'high'
+        });
+      }
+    });
+
+    // ROI Achievement Alerts
+    if (stats.roi_vs_capital > 0) {
+      const roi = stats.roi_vs_capital;
+      if (roi >= 10 && roi < 15) {
+        alerts.push({
+          id: 'roi-double-digit',
+          type: 'success',
+          icon: '💰',
+          title: 'Double-Digit Returns!',
+          message: `Excellent! You've achieved ${roi.toFixed(1)}% ROI on your invested capital. You're outperforming most traditional investments!`,
+          priority: 'medium'
+        });
+      }
+    }
+
+    setSmartAlerts(alerts);
+  };
+
+  // Generate alerts when stats change
+  useEffect(() => {
+    if (stats.total_balance && stats.total_balance > 0) {
+      generateSmartAlerts();
+    }
+  }, [stats, entries]);
+
   // Load starting balances and capital deposits when Settings modal opens
   useEffect(() => {
     if (showSettingsManager) {
