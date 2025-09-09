@@ -178,8 +178,8 @@ async def initialize_default_exchanges():
 @api_router.post("/entries", response_model=PnLEntry)
 async def create_pnl_entry(entry_data: PnLEntryCreate):
     try:
-        # Calculate total
-        total = entry_data.balances.kraken + entry_data.balances.bitget + entry_data.balances.binance
+        # Calculate total from dynamic balances
+        total = sum(balance.amount for balance in entry_data.balances)
         
         # Get previous entry for PnL calculation
         previous_entry = await db.pnl_entries.find_one(
@@ -209,6 +209,7 @@ async def create_pnl_entry(entry_data: PnLEntryCreate):
         # Insert into database
         entry_dict = entry.dict()
         entry_dict["date"] = entry_dict["date"].isoformat()  # Convert date to string
+        entry_dict["balances"] = [balance.dict() for balance in entry.balances]
         await db.pnl_entries.insert_one(entry_dict)
         
         # Recalculate PnL for subsequent entries
