@@ -417,6 +417,7 @@ const CryptoPnLTracker = () => {
         amount: parseFloat(newCapitalDeposit.amount)
       });
       await loadCapitalDeposits();
+      await fetchData(); // Refresh stats to update ROI cards
       setNewCapitalDeposit({ amount: '', deposit_date: '', notes: '' });
       alert('Capital deposit added successfully!');
     } catch (error) {
