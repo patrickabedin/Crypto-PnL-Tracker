@@ -816,15 +816,7 @@ async def create_pnl_entry(entry_data: PnLEntryCreate, current_user: User = Depe
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Real-Time Exchange Integration Endpoints
-@api_router.get("/exchanges/kraken/balance")
-async def get_kraken_balance(current_user: User = Depends(require_auth)):
-    """Get real-time balance from Kraken"""
-    try:
-        balance_data = await kraken_api.get_account_balance(user_id=current_user.id)
-        return balance_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
 
 @api_router.post("/exchanges/sync")
 async def sync_exchange_balances(current_user: User = Depends(require_auth), background_tasks: BackgroundTasks = None):
