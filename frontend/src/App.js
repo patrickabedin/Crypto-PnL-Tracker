@@ -842,6 +842,9 @@ const CryptoPnLTracker = () => {
               <button onClick={() => setShowExchangeManager(true)} className="btn-secondary text-sm">
                 Exchanges
               </button>
+              <button onClick={() => setShowAPIKeyManager(true)} className="btn-secondary text-sm">
+                API Keys
+              </button>
               <button onClick={handleExportCSV} className="btn-secondary text-sm">
                 Export
               </button>
