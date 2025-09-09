@@ -1031,6 +1031,9 @@ const CryptoPnLTracker = () => {
                   <button onClick={() => { setShowMonthlyView(!showMonthlyView); setShowMobileMenu(false); }} className="btn-secondary text-xs py-2">
                     Monthly
                   </button>
+                  <button onClick={() => { setShowHeatmap(!showHeatmap); setShowMobileMenu(false); }} className="btn-secondary text-xs py-2">
+                    Heat Map
+                  </button>
                   <button onClick={() => { setShowCharts(!showCharts); setShowMobileMenu(false); }} className="btn-secondary text-xs py-2">
                     Charts
                   </button>
