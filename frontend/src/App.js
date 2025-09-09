@@ -811,6 +811,24 @@ const CryptoPnLTracker = () => {
 
       {/* Mobile-Optimized Stats Cards */}
       <div className="px-4 py-6">
+        {/* Sync Status Bar */}
+        {lastSyncTime && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-6 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-blue-600">🔄</span>
+              <span className="text-blue-800 text-sm font-medium">
+                Last sync: {lastSyncTime.toLocaleTimeString()}
+              </span>
+            </div>
+            <button
+              onClick={handleAutoCreateEntry}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Create Entry from Sync
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm p-4 col-span-2 md:col-span-1">
             <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Balance</h3>
