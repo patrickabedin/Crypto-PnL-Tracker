@@ -531,6 +531,66 @@ const CryptoPnLTracker = () => {
     }
   }, [darkMode]);
 
+  // Performance Heatmap Functions
+  const generateHeatmapData = () => {
+    const today = new Date();
+    const yearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+    const heatmapDays = [];
+    
+    // Generate array of last 365 days
+    for (let d = new Date(yearAgo); d <= today; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      const entry = entries.find(e => e.date === dateStr);
+      
+      let performanceLevel = 0;
+      if (entry && entry.pnl_percentage !== 0) {
+        const pnl = entry.pnl_percentage;
+        // Classify performance into 5 levels (0-4)
+        if (pnl > 5) performanceLevel = 4;      // Excellent day (>5%)
+        else if (pnl > 2) performanceLevel = 3; // Good day (2-5%)
+        else if (pnl > 0) performanceLevel = 2; // Positive day (0-2%)
+        else if (pnl > -2) performanceLevel = 1; // Small loss (0 to -2%)
+        else performanceLevel = 0;               // Bad day (<-2%)
+      }
+      
+      heatmapDays.push({
+        date: dateStr,
+        level: performanceLevel,
+        pnl: entry ? entry.pnl_percentage : 0,
+        hasEntry: !!entry
+      });
+    }
+    
+    setHeatmapData(heatmapDays);
+  };
+
+  const getHeatmapColor = (level, darkMode) => {
+    const lightColors = {
+      0: '#ebedf0', // No data / Bad performance
+      1: '#ffeb9c', // Small loss
+      2: '#c6e48b', // Small gain  
+      3: '#7bc96f', // Good gain
+      4: '#239a3b'  // Excellent gain
+    };
+    
+    const darkColors = {
+      0: '#161b22', // No data / Bad performance
+      1: '#0e4429', // Small loss
+      2: '#006d32', // Small gain
+      3: '#26a641', // Good gain
+      4: '#39d353'  // Excellent gain
+    };
+    
+    return darkMode ? darkColors[level] : lightColors[level];
+  };
+
+  // Load heatmap data when entries change
+  useEffect(() => {
+    if (entries.length > 0) {
+      generateHeatmapData();
+    }
+  }, [entries]);
+
   // Load starting balances and capital deposits when Settings modal opens
   useEffect(() => {
     if (showSettingsManager) {
