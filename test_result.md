@@ -366,13 +366,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Starting Balances Management API"
-    - "Capital Deposits Management API" 
-    - "Updated Stats API with ROI Calculations"
+    - "Recent Entries Color Coding by Profit/Loss"
   stuck_tasks:
     - "Google OAuth Authentication Configuration"
   test_all: false
-  test_priority: "new_roi_features_complete"
+  test_priority: "new_feature_testing"
 
 agent_communication:
     - agent: "main"
