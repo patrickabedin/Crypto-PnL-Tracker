@@ -258,12 +258,7 @@ const CryptoPnLTracker = () => {
   const [editingKPI, setEditingKPI] = useState(null);
   const [syncingExchanges, setSyncingExchanges] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
-  
-  // API Key Management State
-  const [showAPIKeyManager, setShowAPIKeyManager] = useState(false);
-  const [apiKeys, setApiKeys] = useState([]);
-  const [editingAPIKey, setEditingAPIKey] = useState(null);
-  const [newAPIKey, setNewAPIKey] = useState({ exchange_name: 'kraken', api_key: '', api_secret: '' });
+
 
   // API Key Management Functions
   const loadAPIKeys = async () => {
