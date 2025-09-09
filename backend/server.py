@@ -882,10 +882,10 @@ async def sync_exchange_balances(current_user: User = Depends(require_auth), bac
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/exchanges/sync")
-async def sync_exchanges(current_user: dict = Depends(get_current_user)):
+async def sync_exchanges(current_user: User = Depends(require_auth)):
     """Sync balances from configured exchanges"""
     try:
-        user_id = current_user["id"]
+        user_id = current_user.id
         sync_results = []
         
         # Get all exchanges for user
