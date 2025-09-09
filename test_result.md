@@ -267,15 +267,18 @@ frontend:
 
   - task: "API Key Management Interface"
     implemented: true
-    working: "NA"
+    working: "NA"  # cannot test without authentication
     file: "/app/frontend/src/App.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Implemented complete API Key management UI with modal interface, CRUD operations (add/edit/delete API keys), secure display of keys (masked secrets), support for multiple exchanges, and integration with backend API key endpoints. Added to both desktop and mobile menus."
+        - working: "NA"
+          agent: "testing"
+          comment: "Cannot test API Key Management Interface - 'API Keys' button not visible on login screen, only appears after authentication. Backend API key endpoints correctly return 401 Unauthorized for unauthenticated requests. Interface implementation exists in code but requires authentication to access and test functionality."
 
 metadata:
   created_by: "main_agent"
