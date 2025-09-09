@@ -306,14 +306,15 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Google OAuth Authentication Configuration"
     - "PnL Dashboard with Stats Cards"
     - "API Key Management Interface"
-    - "Authentication Flow Testing"
   stuck_tasks:
+    - "Google OAuth Authentication Configuration"
     - "PnL Dashboard with Stats Cards"
     - "API Key Management Interface"
   test_all: false
-  test_priority: "authentication_required"
+  test_priority: "oauth_configuration_critical"
 
 agent_communication:
     - agent: "main"
