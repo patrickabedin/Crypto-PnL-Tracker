@@ -569,73 +569,124 @@ class CryptoPnLTester:
         
         return results
     
-    def test_exchange_sync_endpoint(self):
-        """Test /api/exchanges/sync endpoint"""
-        print("\n=== Testing Exchange Sync Endpoint ===")
-        
+    def test_kraken_balance_endpoint(self):
+        """Test /api/exchanges/kraken/balance endpoint specifically"""
         try:
-            response = requests.post(f"{self.base_url}/exchanges/sync", 
-                                   headers=self.get_auth_headers(), timeout=20)
+            response = requests.get(f"{self.base_url}/exchanges/kraken/balance", 
+                                  headers=self.get_auth_headers(), timeout=15)
             
             if response.status_code == 200:
-                sync_data = response.json()
-                self.log_result("Exchange Sync Endpoint", True, "- Sync endpoint responded")
+                balance_data = response.json()
+                self.log_result("Kraken Balance Endpoint", True, "- Endpoint responded successfully")
                 
-                # Check sync results structure
-                if "sync_results" in sync_data:
-                    sync_results = sync_data["sync_results"]
-                    self.log_result("Sync Results Structure", True, f"- {len(sync_results)} exchange results")
+                if balance_data.get("success"):
+                    balance_eur = balance_data.get("balance_eur", 0)
+                    self.log_result("Kraken Balance Success", True, f"- Balance: €{balance_eur}")
                     
-                    # Check Kraken specifically
-                    if "kraken" in sync_results:
-                        kraken_result = sync_results["kraken"]
-                        if kraken_result.get("success"):
-                            balance = kraken_result.get("balance", 0)
-                            self.log_result("Kraken Sync Success", True, f"- Kraken balance: €{balance}")
-                        else:
-                            error = kraken_result.get("error", "Unknown error")
-                            self.log_result("Kraken Sync Success", False, f"- Kraken error: {error}")
-                    else:
-                        self.log_result("Kraken Sync Present", False, "- No Kraken result in sync")
+                    # Check for raw balance data
+                    if "raw_balances" in balance_data:
+                        raw_balances = balance_data["raw_balances"]
+                        self.log_result("Kraken Raw Balances", True, f"- {len(raw_balances)} assets returned")
+                        
+                        # Log significant balances
+                        for asset, amount in raw_balances.items():
+                            if float(amount) > 0.01:
+                                print(f"   {asset}: {amount}")
                     
-                    # Log all sync results for debugging
-                    for exchange, result in sync_results.items():
-                        success = result.get("success", False)
-                        if success:
-                            balance = result.get("balance", 0)
-                            print(f"   {exchange}: SUCCESS - €{balance}")
-                        else:
-                            error = result.get("error", "Unknown")
-                            print(f"   {exchange}: FAILED - {error}")
-                
-                # Check suggested entry
-                if "suggested_entry" in sync_data:
-                    suggested = sync_data["suggested_entry"]
-                    total = suggested.get("total", 0)
-                    balances = suggested.get("balances", [])
-                    self.log_result("Suggested Entry", True, f"- Total: €{total}, Balances: {len(balances)}")
+                    if "asset_details" in balance_data:
+                        asset_details = balance_data["asset_details"]
+                        self.log_result("Kraken Asset Details", True, f"- {len(asset_details)} significant balances")
                     
-                    # Log balance details
-                    for balance in balances:
-                        exchange_id = balance.get("exchange_id", "unknown")
-                        amount = balance.get("amount", 0)
-                        print(f"   Exchange {exchange_id}: €{amount}")
-                    
-                    return sync_data
+                    return balance_data
                 else:
-                    self.log_result("Suggested Entry", False, "- No suggested entry in response")
-                    return sync_data
+                    error_msg = balance_data.get("error", "Unknown error")
+                    self.log_result("Kraken Balance Success", False, f"- Error: {error_msg}")
+                    return None
                     
             elif response.status_code == 401:
-                self.log_result("Exchange Sync Endpoint", False, "- Authentication required")
+                self.log_result("Kraken Balance Endpoint", False, "- Authentication required")
                 return None
             else:
-                self.log_result("Exchange Sync Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
+                self.log_result("Kraken Balance Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
                 return None
                 
         except Exception as e:
-            self.log_result("Exchange Sync Test", False, f"- Error: {str(e)}")
+            self.log_result("Kraken Balance Endpoint Test", False, f"- Error: {str(e)}")
             return None
+    
+    def test_auto_create_entry_investigation(self):
+        """Test auto-create entry endpoint to debug 'Error creating entry from sync data'"""
+        print("\n=== Testing Auto-Create Entry Investigation ===")
+        
+        try:
+            response = requests.post(f"{self.base_url}/entries/auto-create", 
+                                   headers=self.get_auth_headers(), timeout=25)
+            
+            if response.status_code == 200:
+                auto_data = response.json()
+                message = auto_data.get("message", "")
+                self.log_result("Auto-Create Entry Endpoint", True, f"- Response: {message}")
+                
+                if "created successfully" in message:
+                    total_balance = auto_data.get("total_balance", 0)
+                    pnl_percentage = auto_data.get("pnl_percentage", 0)
+                    pnl_amount = auto_data.get("pnl_amount", 0)
+                    synced_exchanges = auto_data.get("exchanges_synced", 0)
+                    
+                    self.log_result("Auto-Entry Creation Success", True, 
+                                  f"- Balance: €{total_balance}, PnL: {pnl_percentage}% (€{pnl_amount})")
+                    self.log_result("Synced Exchanges Count", True, f"- {synced_exchanges} exchanges synced")
+                    
+                    # Check for warnings
+                    if "warnings" in auto_data:
+                        warnings = auto_data["warnings"]
+                        self.log_result("Sync Warnings", True, f"- {len(warnings)} warnings present")
+                        for warning in warnings:
+                            print(f"   Warning: {warning}")
+                    
+                    return True
+                    
+                elif "already exists" in message:
+                    self.log_result("Auto-Entry Already Exists", True, "- Entry for today already exists")
+                    entry_id = auto_data.get("entry_id")
+                    if entry_id:
+                        print(f"   Existing Entry ID: {entry_id}")
+                    return True
+                    
+                elif "No exchange balances available" in message:
+                    self.log_critical_issue("No exchange balances available for entry creation")
+                    sync_errors = auto_data.get("sync_errors", [])
+                    if sync_errors:
+                        print("   Sync Errors:")
+                        for error in sync_errors:
+                            print(f"     {error}")
+                    return False
+                else:
+                    self.log_result("Auto-Entry Unexpected Response", True, f"- Response: {message}")
+                    return True
+                    
+            elif response.status_code == 500:
+                # This is the "Error creating entry from sync data" issue
+                try:
+                    error_data = response.json()
+                    detail = error_data.get("detail", "Unknown error")
+                    self.log_critical_issue(f"Error creating entry from sync data: {detail}")
+                    return False
+                except:
+                    self.log_critical_issue(f"Error creating entry from sync data: {response.text}")
+                    return False
+                    
+            elif response.status_code == 401:
+                self.log_result("Auto-Create Entry", False, "- Authentication required")
+                self.log_critical_issue("Cannot test auto-create entry without authentication")
+                return False
+            else:
+                self.log_result("Auto-Create Entry", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Auto-Create Entry Test", False, f"- Error: {str(e)}")
+            return False
     
     def test_auto_create_entry_endpoint(self):
         """Test /api/entries/auto-create endpoint - the main issue"""
