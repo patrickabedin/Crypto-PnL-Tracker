@@ -107,51 +107,63 @@ user_problem_statement: "Crypto daily PnL performance tracker where user can inp
 backend:
   - task: "Create PnL Entry Model and CRUD API"
     implemented: true
-    working: "NA"  # needs testing
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Implemented complete PnL tracking API with entry creation, reading, updating, deleting. Includes automatic PnL calculations and KPI progress calculation"
+        - working: true
+          agent: "testing"
+          comment: "✅ CRUD API fully functional. Fixed date serialization issue. All operations tested: POST /api/entries (create with realistic crypto amounts €2400-€4600), GET /api/entries (retrieve all with proper sorting), GET /api/entries/{id} (single entry retrieval), PUT /api/entries/{id} (update with recalculation), DELETE /api/entries/{id} (deletion works). Handles edge cases like zero balances and invalid dates properly."
 
   - task: "Portfolio Statistics API"
     implemented: true
-    working: "NA"  # needs testing
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Implemented stats endpoint for total balance, daily PnL, average PnL, and KPI progress tracking"
+        - working: true
+          agent: "testing"
+          comment: "✅ Stats API working perfectly. Fixed missing fields issue. GET /api/stats returns all required fields: total_entries, total_balance, daily_pnl, daily_pnl_percentage, avg_daily_pnl, kpi_progress (5k, 10k, 15k). Data types and structure validated. Handles empty database state correctly."
 
   - task: "Automatic PnL Calculations"
     implemented: true
-    working: "NA"  # needs testing
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Implemented automatic calculation of PnL percentages and amounts based on previous day's total. Also recalculates subsequent entries when data changes"
+        - working: true
+          agent: "testing"
+          comment: "✅ Automatic PnL calculations working excellently. Tested scenarios: First entry (0% PnL), gains (+6.06%, +€248.50), losses (-13.1%, -€570), and recalculation cascade when historical entries are modified. Formula verified: PnL% = (current_total - previous_total) / previous_total * 100. Recalculation triggers properly on updates and maintains data integrity."
 
   - task: "KPI Progress Tracking"
     implemented: true
-    working: "NA"  # needs testing
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Implemented KPI progress calculation for 5K, 10K, and 15K goals showing how far above or below each target"
+        - working: true
+          agent: "testing"
+          comment: "✅ KPI progress tracking working correctly. Tested with various portfolio values. Formula verified: KPI_Xk = current_total - X000. Examples: €4101.50 portfolio shows 5K: -€898.50, 10K: -€5898.50, 15K: -€10898.50. Updates automatically when balances change. Negative values indicate distance below target, positive values show surplus above target."
 
 frontend:
   - task: "Daily Entry Form"
