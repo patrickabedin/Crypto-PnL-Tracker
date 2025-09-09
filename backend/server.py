@@ -113,7 +113,9 @@ async def create_pnl_entry(entry_data: PnLEntryCreate):
         )
         
         # Insert into database
-        await db.pnl_entries.insert_one(entry.dict())
+        entry_dict = entry.dict()
+        entry_dict["date"] = entry_dict["date"].isoformat()  # Convert date to string
+        await db.pnl_entries.insert_one(entry_dict)
         
         # Recalculate PnL for subsequent entries
         await recalculate_subsequent_entries(entry_data.date)
