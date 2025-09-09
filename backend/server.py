@@ -61,6 +61,19 @@ class ExchangeCreate(BaseModel):
     display_name: str
     color: Optional[str] = "#3B82F6"
 
+class KPI(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    target_amount: float
+    color: str = "#3B82F6"
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class KPICreate(BaseModel):
+    name: str
+    target_amount: float
+    color: Optional[str] = "#3B82F6"
+
 class DynamicBalance(BaseModel):
     exchange_id: str
     amount: float
