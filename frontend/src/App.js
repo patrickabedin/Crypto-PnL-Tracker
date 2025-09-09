@@ -444,18 +444,44 @@ const CryptoPnLTracker = () => {
     }
 
     try {
-      await axios.post(`${API}/capital-deposits`, {
-        ...newCapitalDeposit,
-        amount: parseFloat(newCapitalDeposit.amount)
-      });
+      if (editingCapitalDeposit) {
+        // Update existing capital deposit - need to implement PUT endpoint
+        const response = await axios.put(`${API}/capital-deposits/${editingCapitalDeposit.id}`, {
+          ...newCapitalDeposit,
+          amount: parseFloat(newCapitalDeposit.amount)
+        });
+        setEditingCapitalDeposit(null);
+        alert('Capital deposit updated successfully!');
+      } else {
+        // Create new capital deposit
+        await axios.post(`${API}/capital-deposits`, {
+          ...newCapitalDeposit,
+          amount: parseFloat(newCapitalDeposit.amount)
+        });
+        alert('Capital deposit added successfully!');
+      }
+      
       await loadCapitalDeposits();
       await fetchData(); // Refresh stats to update ROI cards
       setNewCapitalDeposit({ amount: '', deposit_date: '', notes: '' });
-      alert('Capital deposit added successfully!');
     } catch (error) {
-      console.error('Error adding capital deposit:', error);
-      alert('Error adding capital deposit: ' + (error.response?.data?.detail || error.message));
+      console.error('Error with capital deposit:', error);
+      alert('Error with capital deposit: ' + (error.response?.data?.detail || error.message));
     }
+  };
+
+  const startEditingCapitalDeposit = (deposit) => {
+    setEditingCapitalDeposit(deposit);
+    setNewCapitalDeposit({
+      amount: deposit.amount.toString(),
+      deposit_date: deposit.deposit_date,
+      notes: deposit.notes || ''
+    });
+  };
+
+  const cancelEditingCapitalDeposit = () => {
+    setEditingCapitalDeposit(null);
+    setNewCapitalDeposit({ amount: '', deposit_date: '', notes: '' });
   };
 
   const handleDeleteCapitalDeposit = async (depositId) => {
