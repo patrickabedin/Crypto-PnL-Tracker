@@ -334,6 +334,25 @@ async def get_portfolio_stats():
         avg_pct_result = await db.pnl_entries.aggregate(pipeline_percentage).to_list(1)
         avg_daily_pnl_percentage = avg_pct_result[0]["avg_pnl_pct"] if avg_pct_result else 0
         
+        # Calculate average monthly PnL percentage
+        monthly_pipeline = [
+            {"$match": {"pnl_percentage": {"$ne": 0}}},
+            {"$addFields": {
+                "year": {"$year": {"$dateFromString": {"dateString": "$date"}}},
+                "month": {"$month": {"$dateFromString": {"dateString": "$date"}}}
+            }},
+            {"$group": {
+                "_id": {"year": "$year", "month": "$month"},
+                "monthly_pnl": {"$sum": "$pnl_percentage"}
+            }},
+            {"$group": {
+                "_id": None,
+                "avg_monthly_pnl": {"$avg": "$monthly_pnl"}
+            }}
+        ]
+        monthly_result = await db.pnl_entries.aggregate(monthly_pipeline).to_list(1)
+        avg_monthly_pnl_percentage = monthly_result[0]["avg_monthly_pnl"] if monthly_result else 0
+        
         return {
             "total_entries": total_entries,
             "total_balance": latest_entry["total"],
