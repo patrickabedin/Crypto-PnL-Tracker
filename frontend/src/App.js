@@ -1006,40 +1006,40 @@ const CryptoPnLTracker = () => {
       <div className="px-4 py-6">
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-4 col-span-2 md:col-span-1">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Balance</h3>
-            <p className="text-xl md:text-2xl font-bold text-gray-900">{formatCurrency(stats.total_balance || 0)}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 col-span-2 md:col-span-1 transition-colors duration-200">
+            <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Balance</h3>
+            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats.total_balance || 0)}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Daily PnL</h3>
-            <p className={`text-lg md:text-xl font-bold ${stats.daily_pnl > 0 ? 'text-green-600' : stats.daily_pnl < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-colors duration-200">
+            <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Daily PnL</h3>
+            <p className={`text-lg md:text-xl font-bold ${stats.daily_pnl > 0 ? 'text-green-600 dark:text-green-400' : stats.daily_pnl < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
               {formatCurrency(stats.daily_pnl || 0)}
             </p>
-            <p className={`text-xs ${stats.daily_pnl_percentage > 0 ? 'text-green-600' : stats.daily_pnl_percentage < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+            <p className={`text-xs ${stats.daily_pnl_percentage > 0 ? 'text-green-600 dark:text-green-400' : stats.daily_pnl_percentage < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
               {stats.daily_pnl_percentage > 0 ? '+' : ''}{(stats.daily_pnl_percentage || 0).toFixed(2)}%
             </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Avg Daily €</h3>
-            <p className={`text-lg md:text-xl font-bold ${stats.avg_daily_pnl > 0 ? 'text-green-600' : stats.avg_daily_pnl < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-colors duration-200">
+            <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Avg Daily €</h3>
+            <p className={`text-lg md:text-xl font-bold ${stats.avg_daily_pnl > 0 ? 'text-green-600 dark:text-green-400' : stats.avg_daily_pnl < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
               {formatCurrency(stats.avg_daily_pnl || 0)}
             </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Avg Daily %</h3>
-            <p className={`text-lg md:text-xl font-bold ${stats.avg_daily_pnl_percentage > 0 ? 'text-green-600' : stats.avg_daily_pnl_percentage < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-colors duration-200">
+            <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Avg Daily %</h3>
+            <p className={`text-lg md:text-xl font-bold ${stats.avg_daily_pnl_percentage > 0 ? 'text-green-600 dark:text-green-400' : stats.avg_daily_pnl_percentage < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
               {stats.avg_daily_pnl_percentage > 0 ? '+' : ''}{(stats.avg_daily_pnl_percentage || 0).toFixed(2)}%
             </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Avg Monthly %</h3>
-            <p className={`text-lg md:text-xl font-bold ${stats.avg_monthly_pnl_percentage > 0 ? 'text-green-600' : stats.avg_monthly_pnl_percentage < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-colors duration-200">
+            <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Avg Monthly %</h3>
+            <p className={`text-lg md:text-xl font-bold ${stats.avg_monthly_pnl_percentage > 0 ? 'text-green-600 dark:text-green-400' : stats.avg_monthly_pnl_percentage < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
               {stats.avg_monthly_pnl_percentage > 0 ? '+' : ''}{(stats.avg_monthly_pnl_percentage || 0).toFixed(2)}%
             </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Entries</h3>
-            <p className="text-lg md:text-xl font-bold text-gray-900">{stats.total_entries || 0}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-colors duration-200">
+            <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Entries</h3>
+            <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{stats.total_entries || 0}</p>
           </div>
         </div>
 
