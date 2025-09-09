@@ -852,36 +852,59 @@ const CryptoPnLTracker = () => {
 
         {/* KPI Progress - Mobile Optimized */}
         <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">KPI Progress</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">KPI Progress</h3>
+            <button
+              onClick={() => setShowKPIManager(true)}
+              className="text-blue-600 hover:text-blue-800 text-sm"
+            >
+              Manage
+            </button>
+          </div>
           <div className="space-y-4">
-            {['5k', '10k', '15k'].map((kpi) => {
-              const progress = stats.kpi_progress?.[kpi] || 0;
-              const target = parseInt(kpi.replace('k', '000'));
-              const current = target + progress;
-              const percentage = Math.max(0, Math.min(100, (current / target) * 100));
+            {kpis.map((kpi) => {
+              const kpiProgress = entries.length > 0 
+                ? entries[0].kpi_progress.find(p => p.kpi_id === kpi.id)
+                : null;
+              const progress = kpiProgress ? kpiProgress.progress : 0;
+              const current = kpi.target_amount + progress;
+              const percentage = Math.max(0, Math.min(100, (current / kpi.target_amount) * 100));
               
               return (
-                <div key={kpi}>
+                <div key={kpi.id}>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="font-medium text-gray-700">KPI {kpi.toUpperCase()}</span>
+                    <span className="font-medium text-gray-700">{kpi.name}</span>
                     <span className={progress >= 0 ? 'text-green-600' : 'text-red-600'}>
                       {progress >= 0 ? '+' : ''}{formatCurrency(progress)}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
                     <div
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        percentage >= 100 ? 'bg-green-500' : percentage >= 75 ? 'bg-yellow-500' : 'bg-blue-500'
-                      }`}
-                      style={{ width: `${percentage}%` }}
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${percentage}%`,
+                        backgroundColor: kpi.color
+                      }}
                     ></div>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {formatCurrency(current)} / {formatCurrency(target)} ({percentage.toFixed(1)}%)
+                    {formatCurrency(current)} / {formatCurrency(kpi.target_amount)} ({percentage.toFixed(1)}%)
                   </div>
                 </div>
               );
             })}
+            
+            {kpis.length === 0 && (
+              <div className="text-center py-4">
+                <p className="text-gray-500 text-sm">No KPIs set yet.</p>
+                <button
+                  onClick={() => setShowKPIManager(true)}
+                  className="text-blue-600 hover:text-blue-800 text-sm mt-2"
+                >
+                  Add your first KPI
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
