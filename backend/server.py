@@ -364,14 +364,17 @@ async def initialize_default_exchanges(current_user: User = Depends(require_auth
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/entries", response_model=PnLEntry)
-async def create_pnl_entry(entry_data: PnLEntryCreate):
+async def create_pnl_entry(entry_data: PnLEntryCreate, current_user: User = Depends(require_auth)):
     try:
         # Calculate total from dynamic balances
         total = sum(balance.amount for balance in entry_data.balances)
         
         # Get previous entry for PnL calculation
         previous_entry = await db.pnl_entries.find_one(
-            {"date": {"$lt": entry_data.date.isoformat()}}, 
+            {
+                "user_id": current_user.id,
+                "date": {"$lt": entry_data.date.isoformat()}
+            }, 
             sort=[("date", -1)]
         )
         
@@ -398,10 +401,11 @@ async def create_pnl_entry(entry_data: PnLEntryCreate):
         entry_dict = entry.dict()
         entry_dict["date"] = entry_dict["date"].isoformat()  # Convert date to string
         entry_dict["balances"] = [balance.dict() for balance in entry.balances]
+        entry_dict["user_id"] = current_user.id
         await db.pnl_entries.insert_one(entry_dict)
         
         # Recalculate PnL for subsequent entries
-        await recalculate_subsequent_entries(entry_data.date)
+        await recalculate_subsequent_entries(entry_data.date, current_user.id)
         
         return entry
         
