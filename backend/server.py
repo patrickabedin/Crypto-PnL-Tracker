@@ -155,6 +155,111 @@ def calculate_kpi_progress(current_total: float) -> Dict[str, float]:
 async def root():
     return {"message": "Crypto PnL Tracker API"}
 
+# Authentication Endpoints
+@api_router.post("/auth/profile")
+async def authenticate_user(request: Request, response: Response):
+    """Authenticate user with session ID from Emergent OAuth"""
+    try:
+        data = await request.json()
+        session_id = data.get("session_id")
+        
+        if not session_id:
+            raise HTTPException(status_code=400, detail="Session ID required")
+        
+        # Call Emergent auth API
+        async with aiohttp.ClientSession() as session:
+            headers = {"X-Session-ID": session_id}
+            async with session.get(
+                "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+                headers=headers
+            ) as auth_response:
+                if auth_response.status != 200:
+                    raise HTTPException(status_code=401, detail="Invalid session")
+                
+                auth_data = await auth_response.json()
+        
+        # Check if user exists
+        existing_user = await db.users.find_one({"email": auth_data["email"]})
+        
+        if not existing_user:
+            # Create new user
+            user = User(
+                email=auth_data["email"],
+                name=auth_data["name"],
+                picture=auth_data.get("picture", "")
+            )
+            await db.users.insert_one(user.dict())
+            user_id = user.id
+        else:
+            user_id = existing_user["id"]
+            user = User(**existing_user)
+        
+        # Create session token
+        session_token = str(uuid.uuid4())
+        expires_at = datetime.utcnow() + timedelta(days=7)
+        
+        user_session = UserSession(
+            user_id=user_id,
+            session_token=session_token,
+            expires_at=expires_at
+        )
+        
+        await db.user_sessions.insert_one(user_session.dict())
+        
+        # Set HttpOnly cookie
+        response.set_cookie(
+            key="session_token",
+            value=session_token,
+            max_age=7 * 24 * 60 * 60,  # 7 days
+            httponly=True,
+            secure=True,
+            samesite="none",
+            path="/"
+        )
+        
+        return {
+            "user": user.dict(),
+            "session_token": session_token,
+            "expires_at": expires_at.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Authentication error: {e}")
+        raise HTTPException(status_code=500, detail="Authentication failed")
+
+@api_router.post("/auth/logout")
+async def logout(request: Request, response: Response):
+    """Logout user"""
+    try:
+        session_token = request.cookies.get("session_token")
+        
+        if session_token:
+            # Remove session from database
+            await db.user_sessions.delete_one({"session_token": session_token})
+        
+        # Clear cookie
+        response.delete_cookie(
+            key="session_token",
+            path="/",
+            secure=True,
+            samesite="none"
+        )
+        
+        return {"message": "Logged out successfully"}
+        
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
+        raise HTTPException(status_code=500, detail="Logout failed")
+
+@api_router.get("/auth/me")
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current user information"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return current_user
+
 # Exchange Management Endpoints
 @api_router.get("/exchanges", response_model=List[Exchange])
 async def get_exchanges():
