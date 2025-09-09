@@ -1318,38 +1318,44 @@ const CryptoPnLTracker = () => {
         {(stats.total_capital_deposited > 0 || stats.total_starting_balance > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {stats.total_capital_deposited > 0 && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
-                <h3 className="text-xs font-medium text-blue-700 uppercase tracking-wide mb-1">Capital Deposited</h3>
-                <p className="text-lg md:text-xl font-bold text-blue-900">{formatCurrency(stats.total_capital_deposited)}</p>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 transition-colors duration-200">
+                <h3 className="text-xs font-medium text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-1">Total Capital Deposited</h3>
+                <p className="text-lg md:text-xl font-bold text-blue-900 dark:text-blue-100">{formatCurrency(stats.total_capital_deposited)}</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  since {capitalDeposits.length > 0 ? new Date(Math.min(...capitalDeposits.map(d => new Date(d.deposit_date)))).toLocaleDateString() : 'N/A'}
+                </p>
               </div>
             )}
             
             {stats.total_starting_balance > 0 && (
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4">
-                <h3 className="text-xs font-medium text-purple-700 uppercase tracking-wide mb-1">Starting Balance</h3>
-                <p className="text-lg md:text-xl font-bold text-purple-900">{formatCurrency(stats.total_starting_balance)}</p>
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-800 rounded-xl p-4 transition-colors duration-200">
+                <h3 className="text-xs font-medium text-purple-700 dark:text-purple-300 uppercase tracking-wide mb-1">Total Starting Balance</h3>
+                <p className="text-lg md:text-xl font-bold text-purple-900 dark:text-purple-100">{formatCurrency(stats.total_starting_balance)}</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                  since {startingBalances.length > 0 ? new Date(Math.min(...startingBalances.map(b => new Date(b.starting_date)))).toLocaleDateString() : 'N/A'}
+                </p>
               </div>
             )}
             
             {stats.total_capital_deposited > 0 && (
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
-                <h3 className="text-xs font-medium text-emerald-700 uppercase tracking-wide mb-1">ROI vs Capital</h3>
-                <p className={`text-lg md:text-xl font-bold ${stats.roi_vs_capital > 0 ? 'text-emerald-600' : stats.roi_vs_capital < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 transition-colors duration-200">
+                <h3 className="text-xs font-medium text-emerald-700 dark:text-emerald-300 uppercase tracking-wide mb-1">ROI vs Capital</h3>
+                <p className={`text-lg md:text-xl font-bold ${stats.roi_vs_capital > 0 ? 'text-emerald-600 dark:text-emerald-400' : stats.roi_vs_capital < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
                   {stats.roi_vs_capital > 0 ? '+' : ''}{(stats.roi_vs_capital || 0).toFixed(2)}%
                 </p>
-                <p className={`text-xs ${stats.roi_vs_capital > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                <p className={`text-xs ${stats.roi_vs_capital > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                   {formatCurrency(Math.abs((stats.total_balance || 0) - (stats.total_capital_deposited || 0)))} {stats.roi_vs_capital >= 0 ? 'profit' : 'loss'}
                 </p>
               </div>
             )}
             
             {stats.total_starting_balance > 0 && (
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
-                <h3 className="text-xs font-medium text-amber-700 uppercase tracking-wide mb-1">ROI vs Start</h3>
-                <p className={`text-lg md:text-xl font-bold ${stats.roi_vs_starting_balance > 0 ? 'text-amber-600' : stats.roi_vs_starting_balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 transition-colors duration-200">
+                <h3 className="text-xs font-medium text-amber-700 dark:text-amber-300 uppercase tracking-wide mb-1">ROI vs Start</h3>
+                <p className={`text-lg md:text-xl font-bold ${stats.roi_vs_starting_balance > 0 ? 'text-amber-600 dark:text-amber-400' : stats.roi_vs_starting_balance < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
                   {stats.roi_vs_starting_balance > 0 ? '+' : ''}{(stats.roi_vs_starting_balance || 0).toFixed(2)}%
                 </p>
-                <p className={`text-xs ${stats.roi_vs_starting_balance > 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                <p className={`text-xs ${stats.roi_vs_starting_balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
                   {formatCurrency(Math.abs((stats.total_balance || 0) - (stats.total_starting_balance || 0)))} {stats.roi_vs_starting_balance >= 0 ? 'gain' : 'loss'}
                 </p>
               </div>
