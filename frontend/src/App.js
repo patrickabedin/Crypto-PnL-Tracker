@@ -1577,6 +1577,191 @@ const CryptoPnLTracker = () => {
         </div>
       )}
 
+      {/* Settings Manager Modal - Mobile Optimized */}
+      {showSettingsManager && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end md:items-center justify-center z-50 p-4 md:p-4">
+          <div className="bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full md:max-w-4xl md:w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Portfolio Settings</h2>
+                <button
+                  onClick={() => setShowSettingsManager(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Starting Balances Section */}
+              <div className="mb-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Starting Balances</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                  <p className="text-blue-700 text-sm">
+                    Set starting balances for each exchange to track performance from your initial investment.
+                  </p>
+                </div>
+                
+                {/* Add Starting Balance Form */}
+                <form onSubmit={handleAddStartingBalance} className="mb-4 p-4 border border-gray-200 rounded-xl">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Exchange</label>
+                      <select
+                        value={newStartingBalance.exchange_id}
+                        onChange={(e) => setNewStartingBalance(prev => ({ ...prev, exchange_id: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Select Exchange</option>
+                        {exchanges.map((exchange) => (
+                          <option key={exchange.id} value={exchange.id}>
+                            {exchange.display_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Starting Balance (€)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newStartingBalance.starting_balance}
+                        onChange={(e) => setNewStartingBalance(prev => ({ ...prev, starting_balance: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Starting Date</label>
+                      <input
+                        type="date"
+                        value={newStartingBalance.starting_date}
+                        onChange={(e) => setNewStartingBalance(prev => ({ ...prev, starting_date: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="mt-4 btn-primary w-full md:w-auto">
+                    Set Starting Balance
+                  </button>
+                </form>
+
+                {/* Current Starting Balances */}
+                <div className="space-y-3">
+                  {startingBalances.map((balance) => {
+                    const exchange = exchanges.find(ex => ex.id === balance.exchange_id);
+                    return (
+                      <div key={balance.id} className="p-4 border border-gray-200 rounded-xl flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{exchange?.display_name || 'Unknown Exchange'}</p>
+                          <p className="text-sm text-gray-500">
+                            Starting: {formatCurrency(balance.starting_balance)} on {new Date(balance.starting_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteStartingBalance(balance.exchange_id)}
+                          className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    );
+                  })}
+                  
+                  {startingBalances.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No starting balances set yet.</p>
+                      <p className="text-sm text-gray-400 mt-1">Add starting balances above to enable ROI tracking!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Capital Deposits Section */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Capital Deposits</h3>
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+                  <p className="text-green-700 text-sm">
+                    Track all capital deposits to calculate true ROI against your invested capital.
+                  </p>
+                </div>
+                
+                {/* Add Capital Deposit Form */}
+                <form onSubmit={handleAddCapitalDeposit} className="mb-4 p-4 border border-gray-200 rounded-xl">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Amount (€)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newCapitalDeposit.amount}
+                        onChange={(e) => setNewCapitalDeposit(prev => ({ ...prev, amount: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Deposit Date</label>
+                      <input
+                        type="date"
+                        value={newCapitalDeposit.deposit_date}
+                        onChange={(e) => setNewCapitalDeposit(prev => ({ ...prev, deposit_date: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                      <input
+                        type="text"
+                        value={newCapitalDeposit.notes}
+                        onChange={(e) => setNewCapitalDeposit(prev => ({ ...prev, notes: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Bank transfer, etc."
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="mt-4 btn-primary w-full md:w-auto">
+                    Add Capital Deposit
+                  </button>
+                </form>
+
+                {/* Current Capital Deposits */}
+                <div className="space-y-3">
+                  {capitalDeposits.map((deposit) => (
+                    <div key={deposit.id} className="p-4 border border-gray-200 rounded-xl flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">{formatCurrency(deposit.amount)}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(deposit.deposit_date).toLocaleDateString()}
+                          {deposit.notes && ` • ${deposit.notes}`}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteCapitalDeposit(deposit.id)}
+                        className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {capitalDeposits.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No capital deposits recorded yet.</p>
+                      <p className="text-sm text-gray-400 mt-1">Add deposits above to track ROI vs invested capital!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
     </div>
   );
