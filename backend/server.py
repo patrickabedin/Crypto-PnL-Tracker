@@ -257,6 +257,100 @@ async def get_portfolio_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/export/csv")
+async def export_entries_csv():
+    """Export all entries to CSV format"""
+    try:
+        entries = await db.pnl_entries.find().sort("date", -1).to_list(1000)
+        
+        # Create CSV content
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow([
+            'Date', 'Kraken', 'Bitget', 'Binance', 'Total', 
+            'PnL %', 'PnL €', 'KPI 5K', 'KPI 10K', 'KPI 15K', 'Notes'
+        ])
+        
+        # Write data
+        for entry in entries:
+            writer.writerow([
+                entry['date'],
+                f"{entry['balances']['kraken']:.2f}",
+                f"{entry['balances']['bitget']:.2f}",
+                f"{entry['balances']['binance']:.2f}",
+                f"{entry['total']:.2f}",
+                f"{entry['pnl_percentage']:.2f}%",
+                f"{entry['pnl_amount']:.2f}",
+                f"{entry['kpi_5k']:.2f}",
+                f"{entry['kpi_10k']:.2f}",
+                f"{entry['kpi_15k']:.2f}",
+                entry.get('notes', '')
+            ])
+        
+        output.seek(0)
+        
+        # Return as streaming response
+        return StreamingResponse(
+            io.StringIO(output.getvalue()),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=crypto_pnl_data.csv"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/chart-data")
+async def get_chart_data():
+    """Get data formatted for charts"""
+    try:
+        entries = await db.pnl_entries.find().sort("date", 1).to_list(1000)
+        
+        if not entries:
+            return {
+                "portfolio_timeline": [],
+                "pnl_timeline": [],
+                "exchange_breakdown": {"kraken": 0, "bitget": 0, "binance": 0}
+            }
+        
+        # Portfolio timeline data
+        portfolio_timeline = []
+        pnl_timeline = []
+        
+        for entry in entries:
+            portfolio_timeline.append({
+                "date": entry["date"],
+                "total": entry["total"],
+                "kraken": entry["balances"]["kraken"],
+                "bitget": entry["balances"]["bitget"],
+                "binance": entry["balances"]["binance"]
+            })
+            
+            if entry["pnl_percentage"] != 0:  # Skip first entry with 0 PnL
+                pnl_timeline.append({
+                    "date": entry["date"],
+                    "pnl_percentage": entry["pnl_percentage"],
+                    "pnl_amount": entry["pnl_amount"]
+                })
+        
+        # Latest exchange breakdown
+        latest = entries[-1]
+        exchange_breakdown = {
+            "kraken": latest["balances"]["kraken"],
+            "bitget": latest["balances"]["bitget"],
+            "binance": latest["balances"]["binance"]
+        }
+        
+        return {
+            "portfolio_timeline": portfolio_timeline,
+            "pnl_timeline": pnl_timeline,
+            "exchange_breakdown": exchange_breakdown
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 async def recalculate_subsequent_entries(from_date: date):
     """Recalculate PnL for entries from the given date onwards"""
     try:
