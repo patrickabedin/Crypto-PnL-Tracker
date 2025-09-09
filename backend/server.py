@@ -914,7 +914,14 @@ async def auto_create_entry_from_sync(
         
         return {
             "message": "Entry created successfully from real-time data",
-            "entry": created_entry,
+            "entry": {
+                "id": created_entry["id"],
+                "date": created_entry["date"],
+                "total": created_entry["total"],
+                "pnl_percentage": created_entry["pnl_percentage"],
+                "pnl_amount": created_entry["pnl_amount"],
+                "notes": created_entry["notes"]
+            },
             "total_balance": round(total_balance, 2),
             "synced_exchanges": len(balances)
         }
