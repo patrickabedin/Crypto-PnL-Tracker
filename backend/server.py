@@ -221,13 +221,20 @@ async def get_portfolio_stats():
         # Get total entries count
         total_entries = await db.pnl_entries.count_documents({})
         
-        # Calculate average daily PnL
-        pipeline = [
+        # Calculate average daily PnL (amount and percentage)
+        pipeline_amount = [
             {"$match": {"pnl_amount": {"$ne": 0}}},
             {"$group": {"_id": None, "avg_pnl": {"$avg": "$pnl_amount"}}}
         ]
-        avg_result = await db.pnl_entries.aggregate(pipeline).to_list(1)
-        avg_daily_pnl = avg_result[0]["avg_pnl"] if avg_result else 0
+        avg_amount_result = await db.pnl_entries.aggregate(pipeline_amount).to_list(1)
+        avg_daily_pnl = avg_amount_result[0]["avg_pnl"] if avg_amount_result else 0
+        
+        pipeline_percentage = [
+            {"$match": {"pnl_percentage": {"$ne": 0}}},
+            {"$group": {"_id": None, "avg_pnl_pct": {"$avg": "$pnl_percentage"}}}
+        ]
+        avg_pct_result = await db.pnl_entries.aggregate(pipeline_percentage).to_list(1)
+        avg_daily_pnl_percentage = avg_pct_result[0]["avg_pnl_pct"] if avg_pct_result else 0
         
         return {
             "total_entries": total_entries,
