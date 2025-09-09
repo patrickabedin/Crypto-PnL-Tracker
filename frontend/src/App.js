@@ -1517,8 +1517,8 @@ const CryptoPnLTracker = () => {
           <div className="space-y-6 mb-6">
             {/* Portfolio Chart */}
             {getPortfolioChartData() && (
-              <div className="bg-white rounded-xl shadow-sm p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Portfolio Timeline</h3>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-colors duration-200">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Portfolio Timeline</h3>
                 <div className="h-64 md:h-80">
                   <Line 
                     data={getPortfolioChartData()} 
@@ -1528,21 +1528,35 @@ const CryptoPnLTracker = () => {
                       plugins: {
                         legend: {
                           position: 'top',
-                          labels: { boxWidth: 12, font: { size: 11 } }
+                          labels: { 
+                            boxWidth: 12, 
+                            font: { size: 11 },
+                            color: darkMode ? '#f9fafb' : '#374151'
+                          }
                         }
                       },
                       scales: {
                         y: {
                           beginAtZero: false,
+                          grid: {
+                            color: darkMode ? '#374151' : '#e5e7eb'
+                          },
                           ticks: {
                             font: { size: 10 },
+                            color: darkMode ? '#d1d5db' : '#6b7280',
                             callback: function(value) {
                               return '€' + value.toLocaleString();
                             }
                           }
                         },
                         x: {
-                          ticks: { font: { size: 10 } }
+                          grid: {
+                            color: darkMode ? '#374151' : '#e5e7eb'
+                          },
+                          ticks: { 
+                            font: { size: 10 },
+                            color: darkMode ? '#d1d5db' : '#6b7280'
+                          }
                         }
                       }
                     }}
@@ -1555,8 +1569,8 @@ const CryptoPnLTracker = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Exchange Breakdown */}
               {getExchangeBreakdownData() && (
-                <div className="bg-white rounded-xl shadow-sm p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Exchange Breakdown</h3>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-colors duration-200">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Exchange Breakdown</h3>
                   <div className="h-48">
                     <Pie 
                       data={getExchangeBreakdownData()} 
@@ -1566,7 +1580,10 @@ const CryptoPnLTracker = () => {
                         plugins: {
                           legend: {
                             position: 'bottom',
-                            labels: { font: { size: 10 } }
+                            labels: { 
+                              font: { size: 10 },
+                              color: darkMode ? '#f9fafb' : '#374151'
+                            }
                           }
                         }
                       }}
@@ -1577,8 +1594,8 @@ const CryptoPnLTracker = () => {
 
               {/* PnL Performance */}
               {getPnLChartData() && (
-                <div className="bg-white rounded-xl shadow-sm p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily PnL Performance</h3>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-colors duration-200">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Daily PnL Performance</h3>
                   <div className="h-48">
                     <Bar 
                       data={getPnLChartData()} 
@@ -1591,15 +1608,25 @@ const CryptoPnLTracker = () => {
                         scales: {
                           y: {
                             beginAtZero: true,
+                            grid: {
+                              color: darkMode ? '#374151' : '#e5e7eb'
+                            },
                             ticks: {
                               font: { size: 10 },
+                              color: darkMode ? '#d1d5db' : '#6b7280',
                               callback: function(value) {
                                 return value + '%';
                               }
                             }
                           },
                           x: {
-                            ticks: { font: { size: 9 } }
+                            grid: {
+                              color: darkMode ? '#374151' : '#e5e7eb'
+                            },
+                            ticks: { 
+                              font: { size: 9 },
+                              color: darkMode ? '#d1d5db' : '#6b7280'
+                            }
                           }
                         }
                       }}
