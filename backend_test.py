@@ -409,52 +409,165 @@ class CryptoPnLTester:
             self.log_result("Rate Limiting Test", False, f"- Error: {str(e)}")
             return False
     
-    def test_kraken_balance_endpoint(self):
-        """Test /api/exchanges/kraken/balance endpoint specifically"""
-        print("\n=== Testing Backend Kraken Balance Endpoint ===")
+    def test_sync_process_investigation(self):
+        """CRITICAL TEST 3: Sync Process Investigation - Debug why sync reports 0/3 exchanges successful"""
+        print("\n=== CRITICAL TEST 3: Sync Process Investigation ===")
         
+        # Test 1: Check if exchanges exist for the authenticated user
+        print("\n--- Testing User Exchanges ---")
+        exchanges_exist = self.test_user_exchanges()
+        
+        # Test 2: Test POST /api/exchanges/sync with authentication
+        print("\n--- Testing Exchange Sync Endpoint ---")
+        sync_result = self.test_exchange_sync_detailed()
+        
+        # Test 3: Test individual exchange sync components
+        print("\n--- Testing Individual Exchange Components ---")
+        individual_results = self.test_individual_exchange_sync()
+        
+        return sync_result
+    
+    def test_user_exchanges(self):
+        """Check if exchanges exist for the authenticated user in database"""
+        try:
+            response = requests.get(f"{self.base_url}/exchanges", 
+                                  headers=self.get_auth_headers(), timeout=10)
+            
+            if response.status_code == 200:
+                exchanges = response.json()
+                self.log_result("User Exchanges Retrieval", True, f"- Found {len(exchanges)} exchanges")
+                
+                if len(exchanges) == 0:
+                    self.log_critical_issue("No exchanges configured for user - this explains 0/3 sync failure")
+                    return False
+                
+                # Check for expected exchanges
+                exchange_names = [ex.get("name", "").lower() for ex in exchanges]
+                expected = ["kraken", "binance", "bitget"]
+                
+                for expected_name in expected:
+                    if expected_name in exchange_names:
+                        exchange = next(ex for ex in exchanges if ex.get("name", "").lower() == expected_name)
+                        is_active = exchange.get("is_active", False)
+                        print(f"   {expected_name.title()}: {'Active' if is_active else 'Inactive'}")
+                        
+                        if not is_active:
+                            self.log_result(f"{expected_name.title()} Exchange Status", False, "- Exchange is inactive")
+                    else:
+                        self.log_result(f"{expected_name.title()} Exchange", False, "- Exchange not found")
+                
+                if len(exchanges) >= 3:
+                    self.log_result("Expected Exchange Count", True, f"- {len(exchanges)} exchanges available for sync")
+                else:
+                    self.log_result("Expected Exchange Count", False, f"- Only {len(exchanges)} exchanges (expected 3)")
+                
+                return True
+                
+            elif response.status_code == 401:
+                self.log_result("User Exchanges", False, "- Authentication required")
+                self.log_critical_issue("Cannot check user exchanges without authentication")
+                return False
+            else:
+                self.log_result("User Exchanges", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("User Exchanges Test", False, f"- Error: {str(e)}")
+            return False
+    
+    def test_exchange_sync_detailed(self):
+        """Test POST /api/exchanges/sync with detailed analysis"""
+        try:
+            response = requests.post(f"{self.base_url}/exchanges/sync", 
+                                   headers=self.get_auth_headers(), timeout=30)
+            
+            if response.status_code == 200:
+                sync_data = response.json()
+                message = sync_data.get("message", "")
+                self.log_result("Exchange Sync Endpoint", True, f"- Response: {message}")
+                
+                # Parse the sync results
+                results = sync_data.get("results", [])
+                total_exchanges = sync_data.get("total_exchanges", 0)
+                successful_syncs = sync_data.get("successful_syncs", 0)
+                
+                print(f"   Total Exchanges: {total_exchanges}")
+                print(f"   Successful Syncs: {successful_syncs}")
+                
+                if successful_syncs == 0 and total_exchanges > 0:
+                    self.log_critical_issue(f"0/{total_exchanges} exchanges synced successfully - this is the reported issue")
+                    
+                    # Analyze each exchange result
+                    for result in results:
+                        exchange = result.get("exchange", "unknown")
+                        success = result.get("success", False)
+                        error = result.get("error", "No error message")
+                        
+                        print(f"   {exchange.title()}: {'SUCCESS' if success else 'FAILED'}")
+                        if not success:
+                            print(f"     Error: {error}")
+                            
+                            # Check for specific error patterns
+                            if "rate limiting" in error.lower() or "lockout" in error.lower():
+                                self.log_result(f"{exchange.title()} Rate Limiting", False, f"- Rate limited: {error}")
+                            elif "api keys not configured" in error.lower():
+                                self.log_result(f"{exchange.title()} API Keys", False, f"- API keys missing: {error}")
+                            elif "not yet implemented" in error.lower():
+                                self.log_result(f"{exchange.title()} Implementation", False, f"- Not implemented: {error}")
+                            else:
+                                self.log_result(f"{exchange.title()} Unknown Error", False, f"- Unknown error: {error}")
+                    
+                    return False
+                elif successful_syncs > 0:
+                    self.log_result("Sync Success", True, f"- {successful_syncs}/{total_exchanges} exchanges synced")
+                    return True
+                else:
+                    self.log_result("No Exchanges to Sync", False, "- No exchanges configured")
+                    return False
+                    
+            elif response.status_code == 401:
+                self.log_result("Exchange Sync", False, "- Authentication required")
+                self.log_critical_issue("Cannot test exchange sync without authentication")
+                return False
+            else:
+                self.log_result("Exchange Sync", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.log_result("Exchange Sync Test", False, f"- Error: {str(e)}")
+            return False
+    
+    def test_individual_exchange_sync(self):
+        """Test individual exchange sync components"""
+        results = {}
+        
+        # Test Kraken specifically
         try:
             response = requests.get(f"{self.base_url}/exchanges/kraken/balance", 
-                                  headers=self.get_auth_headers(), timeout=15)
+                                  headers=self.get_auth_headers(), timeout=20)
             
             if response.status_code == 200:
                 balance_data = response.json()
-                self.log_result("Kraken Balance Endpoint", True, "- Endpoint responded successfully")
-                
                 if balance_data.get("success"):
-                    balance_eur = balance_data.get("balance_eur", 0)
-                    self.log_result("Kraken Balance Success", True, f"- Balance: €{balance_eur}")
-                    
-                    # Check for raw balance data
-                    if "raw_balances" in balance_data:
-                        raw_balances = balance_data["raw_balances"]
-                        self.log_result("Kraken Raw Balances", True, f"- {len(raw_balances)} assets returned")
-                        
-                        # Log significant balances
-                        for asset, amount in raw_balances.items():
-                            if float(amount) > 0.01:
-                                print(f"   {asset}: {amount}")
-                    
-                    if "asset_details" in balance_data:
-                        asset_details = balance_data["asset_details"]
-                        self.log_result("Kraken Asset Details", True, f"- {len(asset_details)} significant balances")
-                    
-                    return balance_data
+                    balance = balance_data.get("balance_eur", 0)
+                    self.log_result("Kraken Individual Sync", True, f"- Balance: €{balance}")
+                    results["kraken"] = {"success": True, "balance": balance}
                 else:
-                    error_msg = balance_data.get("error", "Unknown error")
-                    self.log_result("Kraken Balance Success", False, f"- Error: {error_msg}")
-                    return None
-                    
+                    error = balance_data.get("error", "Unknown error")
+                    self.log_result("Kraken Individual Sync", False, f"- Error: {error}")
+                    results["kraken"] = {"success": False, "error": error}
             elif response.status_code == 401:
-                self.log_result("Kraken Balance Endpoint", False, "- Authentication required")
-                return None
+                self.log_result("Kraken Individual Sync", False, "- Authentication required")
+                results["kraken"] = {"success": False, "error": "Authentication required"}
             else:
-                self.log_result("Kraken Balance Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
-                return None
+                self.log_result("Kraken Individual Sync", False, f"- HTTP {response.status_code}")
+                results["kraken"] = {"success": False, "error": f"HTTP {response.status_code}"}
                 
         except Exception as e:
-            self.log_result("Kraken Balance Endpoint Test", False, f"- Error: {str(e)}")
-            return None
+            self.log_result("Kraken Individual Sync", False, f"- Error: {str(e)}")
+            results["kraken"] = {"success": False, "error": str(e)}
+        
+        return results
     
     def test_exchange_sync_endpoint(self):
         """Test /api/exchanges/sync endpoint"""
