@@ -250,9 +250,9 @@ async def update_pnl_entry(entry_id: str, update_data: PnLEntryUpdate):
         if update_data.date:
             update_dict["date"] = update_data.date.isoformat()
         if update_data.balances:
-            update_dict["balances"] = update_data.balances.dict()
+            update_dict["balances"] = [balance.dict() for balance in update_data.balances]
             # Recalculate total
-            total = update_data.balances.kraken + update_data.balances.bitget + update_data.balances.binance
+            total = sum(balance.amount for balance in update_data.balances)
             update_dict["total"] = round(total, 2)
             
             # Recalculate KPI progress
@@ -273,6 +273,8 @@ async def update_pnl_entry(entry_id: str, update_data: PnLEntryUpdate):
             entry_date = update_data.date if update_data.date else datetime.fromisoformat(entry["date"]).date()
             await recalculate_subsequent_entries(entry_date)
         
+        # Convert back to Pydantic model
+        updated_entry["balances"] = [DynamicBalance(**balance) for balance in updated_entry["balances"]]
         return PnLEntry(**updated_entry)
         
     except Exception as e:
