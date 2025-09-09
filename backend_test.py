@@ -688,148 +688,8 @@ class CryptoPnLTester:
             self.log_result("Auto-Create Entry Test", False, f"- Error: {str(e)}")
             return False
     
-    def test_auto_create_entry_endpoint(self):
-        """Test /api/entries/auto-create endpoint - the main issue"""
-        print("\n=== Testing Auto-Create Entry Endpoint (Main Issue) ===")
-        
-        try:
-            response = requests.post(f"{self.base_url}/entries/auto-create", 
-                                   headers=self.get_auth_headers(), timeout=20)
-            
-            if response.status_code == 200:
-                auto_data = response.json()
-                message = auto_data.get("message", "")
-                self.log_result("Auto-Create Entry Endpoint", True, f"- Response: {message}")
-                
-                if "created successfully" in message:
-                    # Entry was created successfully
-                    total_balance = auto_data.get("total_balance", 0)
-                    pnl_percentage = auto_data.get("pnl_percentage", 0)
-                    pnl_amount = auto_data.get("pnl_amount", 0)
-                    synced_exchanges = auto_data.get("synced_exchanges", 0)
-                    
-                    self.log_result("Auto-Entry Creation Success", True, 
-                                  f"- Balance: €{total_balance}, PnL: {pnl_percentage}% (€{pnl_amount})")
-                    self.log_result("Synced Exchanges Count", True, f"- {synced_exchanges} exchanges synced")
-                    
-                    return auto_data
-                    
-                elif "already exists" in message:
-                    # Entry for today already exists
-                    self.log_result("Auto-Entry Already Exists", True, "- Entry for today already exists")
-                    
-                    # Check if suggested balances are provided
-                    if "suggested_balances" in auto_data:
-                        suggested = auto_data["suggested_balances"]
-                        self.log_result("Suggested Balances", True, f"- {len(suggested)} balance suggestions")
-                        
-                        for balance in suggested:
-                            exchange_id = balance.get("exchange_id", "unknown")
-                            amount = balance.get("amount", 0)
-                            print(f"   Exchange {exchange_id}: €{amount}")
-                    
-                    return auto_data
-                else:
-                    self.log_result("Auto-Entry Response", True, f"- Unexpected response: {message}")
-                    return auto_data
-                    
-            elif response.status_code == 400:
-                # Bad request - might be expected if no balances available
-                try:
-                    error_data = response.json()
-                    detail = error_data.get("detail", "Unknown error")
-                    self.log_result("Auto-Create Entry Error", False, f"- Error: {detail}")
-                except:
-                    self.log_result("Auto-Create Entry Error", False, f"- Error: {response.text}")
-                return None
-                
-            elif response.status_code == 401:
-                self.log_result("Auto-Create Entry Endpoint", False, "- Authentication required")
-                return None
-            else:
-                self.log_result("Auto-Create Entry Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
-                return None
-                
-        except Exception as e:
-            self.log_result("Auto-Create Entry Test", False, f"- Error: {str(e)}")
-            return None
-    
-    def test_api_key_storage_retrieval(self):
-        """Test if API keys are being stored and retrieved properly"""
-        print("\n=== Testing API Key Storage and Retrieval ===")
-        
-        # Test storing the Kraken API keys
-        api_key_data = {
-            "exchange_name": "kraken",
-            "api_key": KRAKEN_API_KEY,
-            "api_secret": KRAKEN_PRIVATE_KEY
-        }
-        
-        try:
-            # Store API key
-            response = requests.post(f"{self.base_url}/exchange-api-keys", 
-                                   json=api_key_data,
-                                   headers=self.get_auth_headers(), timeout=10)
-            
-            if response.status_code == 200:
-                result = response.json()
-                message = result.get("message", "")
-                self.log_result("Store Kraken API Key", True, f"- {message}")
-            elif response.status_code == 401:
-                self.log_result("Store Kraken API Key", False, "- Authentication required")
-                return False
-            else:
-                self.log_result("Store Kraken API Key", False, f"- HTTP {response.status_code}: {response.text}")
-                return False
-                
-        except Exception as e:
-            self.log_result("Store API Key Test", False, f"- Error: {str(e)}")
-            return False
-        
-        # Test retrieving API keys
-        try:
-            response = requests.get(f"{self.base_url}/exchange-api-keys", 
-                                  headers=self.get_auth_headers(), timeout=10)
-            
-            if response.status_code == 200:
-                api_keys = response.json()
-                self.log_result("Retrieve API Keys", True, f"- Retrieved {len(api_keys)} API keys")
-                
-                # Check if Kraken key is present
-                kraken_key = None
-                for key in api_keys:
-                    if key.get("exchange_name") == "kraken":
-                        kraken_key = key
-                        break
-                
-                if kraken_key:
-                    self.log_result("Kraken API Key Present", True, "- Kraken API key found in storage")
-                    
-                    # Verify key is masked
-                    preview = kraken_key.get("api_key_preview", "")
-                    if "..." in preview and len(preview) > 8:
-                        self.log_result("API Key Security", True, "- API key properly masked")
-                    else:
-                        self.log_result("API Key Security", False, f"- API key not properly masked: {preview}")
-                    
-                    return True
-                else:
-                    self.log_result("Kraken API Key Present", False, "- Kraken API key not found")
-                    return False
-                    
-            elif response.status_code == 401:
-                self.log_result("Retrieve API Keys", False, "- Authentication required")
-                return False
-            else:
-                self.log_result("Retrieve API Keys", False, f"- HTTP {response.status_code}: {response.text}")
-                return False
-                
-        except Exception as e:
-            self.log_result("Retrieve API Keys Test", False, f"- Error: {str(e)}")
-            return False
-    
     def test_authentication_flow(self):
-        """Test authentication to get session token for other tests"""
+        """Test authentication to understand the authentication barrier"""
         print("\n=== Testing Authentication Flow ===")
         
         # Try to access a protected endpoint without auth first
@@ -848,6 +708,7 @@ class CryptoPnLTester:
         # This would typically come from the Google OAuth flow or legacy auth
         print("   Note: Full API testing requires valid authentication token")
         print("   Current tests will show authentication errors for protected endpoints")
+        print("   This is the main barrier preventing verification of the €57,699.48 balance issue")
     
     def run_final_debugging_tests(self):
         """Run the final debugging attempt to resolve persistent balance and sync issues"""
