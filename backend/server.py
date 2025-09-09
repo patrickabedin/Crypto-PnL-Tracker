@@ -833,6 +833,49 @@ async def get_chart_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+async def recalculate_all_entries(user_id: str):
+    """Recalculate all entries for a specific user (used when KPIs change)"""
+    try:
+        # Get all entries for this user
+        entries = await db.pnl_entries.find({
+            "user_id": user_id
+        }).sort("date", 1).to_list(1000)
+        
+        # Get user's KPIs
+        user_kpis = await db.kpis.find({
+            "user_id": user_id,
+            "is_active": True
+        }).to_list(100)
+        
+        for i, entry in enumerate(entries):
+            # Calculate current total from balances
+            current_total = sum(balance["amount"] for balance in entry["balances"])
+            
+            # Get previous entry for PnL calculation
+            if i == 0:
+                previous_total = current_total  # First entry has no previous
+            else:
+                previous_total = entries[i-1]["total"]
+            
+            # Calculate new PnL metrics
+            pnl_metrics = calculate_pnl_metrics(current_total, previous_total)
+            
+            # Calculate KPI progress
+            kpi_progress = calculate_kpi_progress(current_total, user_kpis)
+            
+            # Update entry
+            await db.pnl_entries.update_one(
+                {"id": entry["id"], "user_id": user_id},
+                {"$set": {
+                    "total": round(current_total, 2),
+                    "kpi_progress": kpi_progress,
+                    **pnl_metrics
+                }}
+            )
+            
+    except Exception as e:
+        print(f"Error recalculating all entries: {e}")
+
 async def recalculate_subsequent_entries(from_date: date, user_id: str):
     """Recalculate PnL for entries from the given date onwards for a specific user"""
     try:
