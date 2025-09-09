@@ -157,13 +157,16 @@ def calculate_pnl_metrics(current_total: float, previous_total: float) -> Dict[s
         "pnl_amount": round(pnl_amount, 2)
     }
 
-def calculate_kpi_progress(current_total: float) -> Dict[str, float]:
-    """Calculate progress towards KPI goals"""
-    return {
-        "kpi_5k": round(current_total - 5000, 2),
-        "kpi_10k": round(current_total - 10000, 2),
-        "kpi_15k": round(current_total - 15000, 2)
-    }
+def calculate_kpi_progress(current_total: float, user_kpis: List[Dict]) -> List[Dict]:
+    """Calculate progress towards dynamic KPI goals"""
+    kpi_progress = []
+    for kpi in user_kpis:
+        progress = current_total - kpi["target_amount"]
+        kpi_progress.append({
+            "kpi_id": kpi["id"],
+            "progress": round(progress, 2)
+        })
+    return kpi_progress
 
 # API Routes
 @api_router.get("/")
