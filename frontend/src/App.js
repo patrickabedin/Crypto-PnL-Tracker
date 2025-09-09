@@ -1631,34 +1631,41 @@ const CryptoPnLTracker = () => {
                 {/* Current Starting Balances - Show First */}
                 <div className="mb-6">
                   <h4 className="text-md font-medium text-gray-800 mb-3">Current Starting Balances</h4>
-                  <div className="space-y-3">
-                    {startingBalances.map((balance) => {
-                      const exchange = exchanges.find(ex => ex.id === balance.exchange_id);
-                      return (
-                        <div key={balance.id} className="p-4 border border-gray-200 rounded-xl flex items-center justify-between bg-gray-50">
-                          <div>
-                            <p className="font-medium text-gray-900">{exchange?.display_name || 'Unknown Exchange'}</p>
-                            <p className="text-sm text-gray-500">
-                              Starting: {formatCurrency(balance.starting_balance)} on {new Date(balance.starting_date).toLocaleDateString()}
-                            </p>
+                  
+                  {settingsLoading ? (
+                    <div className="text-center py-6 bg-gray-50 rounded-xl">
+                      <p className="text-gray-500">Loading...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {startingBalances.map((balance) => {
+                        const exchange = exchanges.find(ex => ex.id === balance.exchange_id);
+                        return (
+                          <div key={balance.id} className="p-4 border border-gray-200 rounded-xl flex items-center justify-between bg-gray-50">
+                            <div>
+                              <p className="font-medium text-gray-900">{exchange?.display_name || 'Unknown Exchange'}</p>
+                              <p className="text-sm text-gray-500">
+                                Starting: {formatCurrency(balance.starting_balance)} on {new Date(balance.starting_date).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteStartingBalance(balance.exchange_id)}
+                              className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
                           </div>
-                          <button
-                            onClick={() => handleDeleteStartingBalance(balance.exchange_id)}
-                            className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
+                        );
+                      })}
+                      
+                      {startingBalances.length === 0 && !settingsLoading && (
+                        <div className="text-center py-6 bg-gray-50 rounded-xl">
+                          <p className="text-gray-500">No starting balances set yet.</p>
+                          <p className="text-sm text-gray-400 mt-1">Add starting balances below to enable ROI tracking!</p>
                         </div>
-                      );
-                    })}
-                    
-                    {startingBalances.length === 0 && (
-                      <div className="text-center py-6 bg-gray-50 rounded-xl">
-                        <p className="text-gray-500">No starting balances set yet.</p>
-                        <p className="text-sm text-gray-400 mt-1">Add starting balances below to enable ROI tracking!</p>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Add Starting Balance Form */}
