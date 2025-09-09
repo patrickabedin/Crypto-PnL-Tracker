@@ -131,8 +131,6 @@ class PnLEntryUpdate(BaseModel):
 # Kraken API Integration
 class KrakenAPI:
     def __init__(self):
-        self.api_key = os.environ.get('KRAKEN_API_KEY')
-        self.private_key = os.environ.get('KRAKEN_PRIVATE_KEY')
         self.api_url = "https://api.kraken.com"
         
     def _get_kraken_signature(self, urlpath, data, secret):
@@ -144,10 +142,26 @@ class KrakenAPI:
         sigdigest = base64.b64encode(mac.digest())
         return sigdigest.decode()
     
-    async def get_account_balance(self):
-        """Get account balance from Kraken"""
+    async def get_account_balance(self, api_key=None, private_key=None, user_id=None):
+        """Get account balance from Kraken using user's API keys"""
         try:
-            if not self.api_key or not self.private_key:
+            # If no API keys provided, try to get from user's stored keys
+            if not api_key or not private_key:
+                if user_id:
+                    user_api_key = await db.exchange_api_keys.find_one({
+                        "user_id": user_id,
+                        "exchange_name": "kraken",
+                        "is_active": True
+                    })
+                    if user_api_key:
+                        api_key = user_api_key["api_key"]
+                        private_key = user_api_key["api_secret"]
+                    else:
+                        # Fallback to environment variables (temporary)
+                        api_key = os.environ.get('KRAKEN_API_KEY')
+                        private_key = os.environ.get('KRAKEN_PRIVATE_KEY')
+            
+            if not api_key or not private_key:
                 raise Exception("Kraken API credentials not configured")
             
             nonce = str(int(1000*time.time()))
@@ -155,8 +169,8 @@ class KrakenAPI:
             urlpath = '/0/private/Balance'
             
             headers = {
-                'API-Key': self.api_key,
-                'API-Sign': self._get_kraken_signature(urlpath, data, self.private_key)
+                'API-Key': api_key,
+                'API-Sign': self._get_kraken_signature(urlpath, data, private_key)
             }
             
             async with aiohttp.ClientSession() as session:
@@ -193,6 +207,13 @@ class KrakenAPI:
                             else:
                                 # For other assets, use a conservative estimate
                                 total_eur += balance_float * 1.0
+                    
+                    # Update last used timestamp
+                    if user_id:
+                        await db.exchange_api_keys.update_one(
+                            {"user_id": user_id, "exchange_name": "kraken"},
+                            {"$set": {"last_used": datetime.utcnow()}}
+                        )
                     
                     return {
                         'success': True,
