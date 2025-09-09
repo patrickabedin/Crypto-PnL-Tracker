@@ -201,15 +201,18 @@ backend:
 frontend:
   - task: "Daily Entry Form"
     implemented: true
-    working: "NA"  # needs testing
+    working: "NA"  # cannot test without authentication
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Implemented modal form for adding daily balance entries with date, Kraken, Bitget, Binance amounts, and notes"
+        - working: "NA"
+          agent: "testing"
+          comment: "Cannot test Daily Entry Form functionality - requires Google OAuth authentication. Frontend loads correctly with login screen. Form implementation appears complete in code review. Authentication barrier prevents functional testing of modal form, input validation, and submission."
 
   - task: "PnL Dashboard with Stats Cards"
     implemented: true
