@@ -381,6 +381,7 @@ const CryptoPnLTracker = () => {
         starting_balance: parseFloat(newStartingBalance.starting_balance)
       });
       await loadStartingBalances();
+      await fetchData(); // Refresh stats to update ROI cards
       setNewStartingBalance({ exchange_id: '', starting_balance: '', starting_date: '' });
       alert('Starting balance set successfully!');
     } catch (error) {
