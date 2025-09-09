@@ -413,9 +413,11 @@ async def create_pnl_entry(entry_data: PnLEntryCreate, current_user: User = Depe
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/entries", response_model=List[PnLEntry])
-async def get_pnl_entries(limit: int = 100):
+async def get_pnl_entries(current_user: User = Depends(require_auth), limit: int = 100):
     try:
-        entries = await db.pnl_entries.find().sort("date", -1).limit(limit).to_list(limit)
+        entries = await db.pnl_entries.find({
+            "user_id": current_user.id
+        }).sort("date", -1).limit(limit).to_list(limit)
         result = []
         for entry in entries:
             # Convert balances back to Pydantic models
@@ -426,9 +428,12 @@ async def get_pnl_entries(limit: int = 100):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/entries/{entry_id}", response_model=PnLEntry)
-async def get_pnl_entry(entry_id: str):
+async def get_pnl_entry(entry_id: str, current_user: User = Depends(require_auth)):
     try:
-        entry = await db.pnl_entries.find_one({"id": entry_id})
+        entry = await db.pnl_entries.find_one({
+            "id": entry_id,
+            "user_id": current_user.id
+        })
         if not entry:
             raise HTTPException(status_code=404, detail="Entry not found")
         # Convert balances back to Pydantic models
