@@ -284,6 +284,13 @@ const CryptoPnLTracker = () => {
     target_amount: '',
     color: '#10B981'
   });
+  
+  // Dark Mode State
+  const [darkMode, setDarkMode] = useState(() => {
+    // Check localStorage or default to false
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
 
 
   // Configure axios defaults
