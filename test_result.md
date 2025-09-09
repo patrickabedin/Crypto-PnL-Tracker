@@ -202,6 +202,21 @@ backend:
           comment: "✅ API Key Management endpoints implemented correctly. All endpoints properly require authentication and return appropriate responses. GET endpoint returns masked API keys for security. POST/DELETE endpoints work as expected. Structure and security measures are correct."
 
 frontend:
+  - task: "Google OAuth Authentication Configuration"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Implemented Google OAuth authentication with proper client ID, token verification, session management, and secure cookie handling. Frontend includes Google Sign-In button rendering and authentication flow."
+        - working: false
+          agent: "testing"
+          comment: "🚨 CRITICAL CONFIGURATION ISSUE: Google OAuth Client ID (94627322598-ooc0a20strhtn85t0v3sugpuglid5v8i.apps.googleusercontent.com) is NOT configured to allow the current domain (crypto-profit-dash-1.preview.emergentagent.com) as an authorized JavaScript origin. Console error: '[GSI_LOGGER]: The given origin is not allowed for the given client ID.' All OAuth components work correctly: Google script loads (✅), button renders with proper HTML (✅), backend endpoints respond correctly (✅), but authentication is blocked by Google Cloud Console configuration. SOLUTION: Add 'https://crypto-profit-dash-1.preview.emergentagent.com' to 'Authorized JavaScript origins' in Google Cloud Console OAuth 2.0 Client ID settings."
+
   - task: "Daily Entry Form"
     implemented: true
     working: "NA"  # cannot test without authentication
