@@ -262,6 +262,7 @@ const CryptoPnLTracker = () => {
   const [showSettingsManager, setShowSettingsManager] = useState(false);
   const [startingBalances, setStartingBalances] = useState([]);
   const [capitalDeposits, setCapitalDeposits] = useState([]);
+  const [settingsLoading, setSettingsLoading] = useState(false);
   const [newStartingBalance, setNewStartingBalance] = useState({ exchange_id: '', starting_balance: '', starting_date: '' });
   const [newCapitalDeposit, setNewCapitalDeposit] = useState({ amount: '', deposit_date: '', notes: '' });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
