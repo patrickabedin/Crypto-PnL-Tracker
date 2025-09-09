@@ -79,6 +79,32 @@ class DynamicBalance(BaseModel):
     exchange_id: str
     amount: float
 
+class ExchangeStartingBalance(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    exchange_id: str
+    starting_balance: float
+    starting_date: str  # ISO date format
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CapitalDeposit(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    amount: float
+    deposit_date: str  # ISO date format
+    notes: Optional[str] = ""
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CapitalDepositCreate(BaseModel):
+    amount: float
+    deposit_date: str
+    notes: Optional[str] = ""
+
+class ExchangeStartingBalanceCreate(BaseModel):
+    exchange_id: str
+    starting_balance: float
+    starting_date: str
+
 class DynamicKPI(BaseModel):
     kpi_id: str
     progress: float
