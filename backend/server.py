@@ -156,22 +156,33 @@ class KrakenAPI:
                     
                     balances = result.get('result', {})
                     
-                    # Convert to EUR value
+                    # Convert to EUR value - focus on total balance regardless of asset type
                     total_eur = 0.0
+                    asset_details = {}
+                    
                     for asset, balance in balances.items():
-                        if float(balance) > 0:
-                            # For now, we'll need price conversion - simplified for demo
-                            # In production, you'd get current prices and convert to EUR
-                            if asset == 'ZEUR':
-                                total_eur += float(balance)
+                        balance_float = float(balance)
+                        if balance_float > 0:
+                            asset_details[asset] = balance_float
+                            
+                            # Convert to EUR (simplified - in production you'd use real-time prices)
+                            if asset in ['ZEUR', 'EUR']:
+                                total_eur += balance_float
+                            elif asset in ['ZUSD', 'USD']:
+                                total_eur += balance_float * 0.92  # Approximate USD to EUR
+                            elif asset in ['BTC', 'XXBT']:
+                                total_eur += balance_float * 58000  # Approximate BTC price in EUR
+                            elif asset in ['ETH', 'XETH']:
+                                total_eur += balance_float * 2400   # Approximate ETH price in EUR
                             else:
-                                # This is a simplified conversion - in reality you'd need current prices
-                                total_eur += float(balance) * 1.0  # Placeholder conversion
+                                # For other assets, use a conservative estimate
+                                total_eur += balance_float * 1.0
                     
                     return {
                         'success': True,
                         'balance_eur': round(total_eur, 2),
                         'raw_balances': balances,
+                        'asset_details': asset_details,
                         'last_updated': datetime.utcnow().isoformat()
                     }
                     
