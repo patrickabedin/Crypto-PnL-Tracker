@@ -329,12 +329,26 @@ const CryptoPnLTracker = () => {
               <h1 className="text-3xl font-bold text-gray-900">Crypto PnL Tracker</h1>
               <p className="text-gray-600 mt-1">Track your daily cryptocurrency portfolio performance</p>
             </div>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="btn-primary"
-            >
-              Add Entry
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowCharts(!showCharts)}
+                className="btn-secondary"
+              >
+                {showCharts ? 'Hide Charts' : 'Show Charts'}
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="btn-secondary"
+              >
+                Export CSV
+              </button>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="btn-primary"
+              >
+                Add Entry
+              </button>
+            </div>
           </div>
         </div>
       </div>
