@@ -1120,10 +1120,13 @@ async def delete_pnl_entry(entry_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/stats")
-async def get_portfolio_stats():
+async def get_portfolio_stats(current_user: User = Depends(require_auth)):
     try:
-        # Get latest entry
-        latest_entry = await db.pnl_entries.find_one(sort=[("date", -1)])
+        # Get latest entry for this user
+        latest_entry = await db.pnl_entries.find_one(
+            {"user_id": current_user.id},
+            sort=[("date", -1)]
+        )
         if not latest_entry:
             return {
                 "total_entries": 0,
