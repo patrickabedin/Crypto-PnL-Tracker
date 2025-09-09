@@ -436,7 +436,13 @@ const CryptoPnLTracker = () => {
     }
   };
 
-  // Handle form input changes
+  // Load starting balances and capital deposits when Settings modal opens
+  useEffect(() => {
+    if (showSettingsManager) {
+      loadStartingBalances();
+      loadCapitalDeposits();
+    }
+  }, [showSettingsManager]);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
