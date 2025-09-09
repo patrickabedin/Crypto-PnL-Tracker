@@ -210,9 +210,11 @@ async def get_portfolio_stats():
         latest_entry = await db.pnl_entries.find_one(sort=[("date", -1)])
         if not latest_entry:
             return {
+                "total_entries": 0,
                 "total_balance": 0,
                 "daily_pnl": 0,
                 "daily_pnl_percentage": 0,
+                "avg_daily_pnl": 0,
                 "kpi_progress": {"5k": 0, "10k": 0, "15k": 0}
             }
         
