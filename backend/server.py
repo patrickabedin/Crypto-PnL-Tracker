@@ -907,7 +907,18 @@ async def create_pnl_entry_internal(entry_data: PnLEntryCreate, current_user: Us
     # Recalculate PnL for subsequent entries
     await recalculate_subsequent_entries(entry_data.date, current_user.id)
     
-    return entry
+    # Return dict instead of Pydantic model to avoid serialization issues
+    return {
+        "id": entry.id,
+        "date": entry.date.isoformat(),
+        "balances": [balance.dict() for balance in entry.balances],
+        "total": entry.total,
+        "pnl_percentage": entry.pnl_percentage,
+        "pnl_amount": entry.pnl_amount,
+        "kpi_progress": [kpi.dict() for kpi in entry.kpi_progress],
+        "notes": entry.notes,
+        "created_at": entry.created_at.isoformat()
+    }
 
 @api_router.get("/entries", response_model=List[PnLEntry])
 async def get_pnl_entries(current_user: User = Depends(require_auth), limit: int = 100):
