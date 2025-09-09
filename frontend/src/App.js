@@ -432,6 +432,7 @@ const CryptoPnLTracker = () => {
     try {
       await axios.delete(`${API}/capital-deposits/${depositId}`);
       await loadCapitalDeposits();
+      await fetchData(); // Refresh stats to update ROI cards
       alert('Capital deposit deleted successfully!');
     } catch (error) {
       console.error('Error deleting capital deposit:', error);
