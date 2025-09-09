@@ -224,7 +224,12 @@ async def create_pnl_entry(entry_data: PnLEntryCreate):
 async def get_pnl_entries(limit: int = 100):
     try:
         entries = await db.pnl_entries.find().sort("date", -1).limit(limit).to_list(limit)
-        return [PnLEntry(**entry) for entry in entries]
+        result = []
+        for entry in entries:
+            # Convert balances back to Pydantic models
+            entry["balances"] = [DynamicBalance(**balance) for balance in entry["balances"]]
+            result.append(PnLEntry(**entry))
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -234,6 +239,8 @@ async def get_pnl_entry(entry_id: str):
         entry = await db.pnl_entries.find_one({"id": entry_id})
         if not entry:
             raise HTTPException(status_code=404, detail="Entry not found")
+        # Convert balances back to Pydantic models
+        entry["balances"] = [DynamicBalance(**balance) for balance in entry["balances"]]
         return PnLEntry(**entry)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
