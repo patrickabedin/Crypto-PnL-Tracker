@@ -457,7 +457,71 @@ const CryptoPnLTracker = () => {
     }
   };
 
-  // KPI management
+  // Real-time sync functions
+  const handleSyncExchanges = async () => {
+    try {
+      setSyncingExchanges(true);
+      const response = await axios.post(`${API}/exchanges/sync`);
+      
+      setLastSyncTime(new Date());
+      
+      // Show sync results
+      const syncResults = response.data.sync_results;
+      const successCount = Object.values(syncResults).filter(r => r.success).length;
+      const totalCount = Object.keys(syncResults).length;
+      
+      alert(`Sync completed! ${successCount}/${totalCount} exchanges synced successfully.`);
+      
+      // Optionally show suggested entry
+      if (response.data.suggested_entry && response.data.suggested_entry.total > 0) {
+        const shouldCreateEntry = window.confirm(
+          `Found total balance of €${response.data.suggested_entry.total.toLocaleString()}. Create today's entry automatically?`
+        );
+        
+        if (shouldCreateEntry) {
+          await handleAutoCreateEntry();
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error syncing exchanges:', error);
+      alert('Error syncing exchanges. Please try again.');
+    } finally {
+      setSyncingExchanges(false);
+    }
+  };
+
+  const handleAutoCreateEntry = async () => {
+    try {
+      const response = await axios.post(`${API}/entries/auto-create`);
+      
+      if (response.data.message.includes('already exists')) {
+        alert('Entry for today already exists. Use manual edit to update.');
+      } else {
+        alert(`Entry created successfully! Total balance: €${response.data.total_balance.toLocaleString()}`);
+        fetchData(); // Refresh data
+      }
+      
+    } catch (error) {
+      console.error('Error creating auto entry:', error);
+      alert('Error creating entry from sync data. Please try manual entry.');
+    }
+  };
+
+  const handleKrakenBalanceTest = async () => {
+    try {
+      const response = await axios.get(`${API}/exchanges/kraken/balance`);
+      
+      if (response.data.success) {
+        alert(`Kraken Balance: €${response.data.balance_eur.toLocaleString()}\nLast Updated: ${new Date(response.data.last_updated).toLocaleString()}`);
+      } else {
+        alert(`Error: ${response.data.error}`);
+      }
+    } catch (error) {
+      console.error('Error testing Kraken:', error);
+      alert('Error connecting to Kraken API. Check your API keys.');
+    }
+  };
   const handleAddKPI = async (e) => {
     e.preventDefault();
     try {
