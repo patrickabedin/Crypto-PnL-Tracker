@@ -288,13 +288,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Real-time Kraken API Integration"
-    - "Exchange API Key Management CRUD"
+    - "PnL Dashboard with Stats Cards"
     - "API Key Management Interface"
+    - "Authentication Flow Testing"
   stuck_tasks:
-    - "Real-time Kraken API Integration"
+    - "PnL Dashboard with Stats Cards"
+    - "API Key Management Interface"
   test_all: false
-  test_priority: "stuck_first"
+  test_priority: "authentication_required"
 
 agent_communication:
     - agent: "main"
