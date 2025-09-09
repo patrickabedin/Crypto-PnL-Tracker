@@ -45,30 +45,36 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check authentication on app start and handle URL fragments
+  // Initialize Google OAuth
+  useEffect(() => {
+    const initializeGoogleAuth = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID || "your-google-client-id.apps.googleusercontent.com",
+          callback: handleGoogleCallback,
+          auto_select: false,
+          cancel_on_tap_outside: false
+        });
+      }
+    };
+
+    // Wait for Google script to load
+    if (window.google) {
+      initializeGoogleAuth();
+    } else {
+      const checkGoogle = setInterval(() => {
+        if (window.google) {
+          initializeGoogleAuth();
+          clearInterval(checkGoogle);
+        }
+      }, 100);
+    }
+  }, []);
+
+  // Check authentication on app start
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // First, check for session_id in URL fragment (priority)
-        const hash = window.location.hash;
-        if (hash.includes('session_id=')) {
-          const sessionId = hash.split('session_id=')[1].split('&')[0];
-          
-          // Authenticate with session ID
-          const response = await axios.post(`${API}/auth/profile`, {
-            session_id: sessionId
-          }, { withCredentials: true });
-          
-          setUser(response.data.user);
-          
-          // Clear the fragment from URL
-          window.location.hash = '';
-          window.history.replaceState(null, null, '/profile');
-          setLoading(false);
-          return;
-        }
-        
-        // If no fragment, check existing session
         const response = await axios.get(`${API}/auth/me`, { withCredentials: true });
         setUser(response.data);
       } catch (error) {
@@ -82,15 +88,40 @@ const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Handle Google OAuth callback
+  const handleGoogleCallback = async (response) => {
+    try {
+      setLoading(true);
+      
+      // Send Google token to our backend
+      const backendResponse = await axios.post(`${API}/auth/google`, {
+        token: response.credential
+      }, { withCredentials: true });
+      
+      setUser(backendResponse.data.user);
+    } catch (error) {
+      console.error('Authentication error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const login = () => {
-    const currentUrl = window.location.origin + '/profile';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(currentUrl)}`;
+    if (window.google) {
+      window.google.accounts.id.prompt();
+    } else {
+      console.error('Google OAuth not loaded');
+    }
   };
 
   const logout = async () => {
     try {
       await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
       setUser(null);
+      // Sign out from Google
+      if (window.google) {
+        window.google.accounts.id.disableAutoSelect();
+      }
     } catch (error) {
       console.error('Logout error:', error);
       setUser(null);
