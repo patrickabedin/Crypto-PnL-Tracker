@@ -738,6 +738,13 @@ const CryptoPnLTracker = () => {
             
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center space-x-3">
+              <button 
+                onClick={handleSyncExchanges}
+                disabled={syncingExchanges}
+                className={`btn-secondary text-sm ${syncingExchanges ? 'opacity-50' : ''}`}
+              >
+                {syncingExchanges ? 'Syncing...' : '🔄 Sync'}
+              </button>
               <button onClick={() => setShowMonthlyView(!showMonthlyView)} className="btn-secondary text-sm">
                 {showMonthlyView ? 'Hide Monthly' : 'Monthly View'}
               </button>
