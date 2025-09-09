@@ -1151,6 +1151,154 @@ const CryptoPnLTracker = () => {
           </div>
         </div>
       )}
+
+      {/* KPI Manager Modal - Mobile Optimized */}
+      {showKPIManager && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end md:items-center justify-center z-50 p-4 md:p-4">
+          <div className="bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full md:max-w-2xl md:w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Manage KPIs</h2>
+                <button
+                  onClick={() => {
+                    setShowKPIManager(false);
+                    cancelEditingKPI();
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Add/Edit KPI Form */}
+              <form onSubmit={editingKPI ? handleUpdateKPI : handleAddKPI} className="mb-6 p-4 border border-gray-200 rounded-xl">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  {editingKPI ? 'Edit KPI' : 'Add New KPI'}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">KPI Name</label>
+                    <input
+                      type="text"
+                      value={newKPI.name}
+                      onChange={(e) => setNewKPI(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g., My Goal, Dream Target"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Target Amount (€)</label>
+                    <input
+                      type="number"
+                      value={newKPI.target_amount}
+                      onChange={(e) => setNewKPI(prev => ({ ...prev, target_amount: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="25000"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Progress Bar Color</label>
+                    <input
+                      type="color"
+                      value={newKPI.color}
+                      onChange={(e) => setNewKPI(prev => ({ ...prev, color: e.target.value }))}
+                      className="w-full h-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4 flex space-x-3">
+                  <button type="submit" className="flex-1 btn-primary py-3">
+                    {editingKPI ? 'Update KPI' : 'Add KPI'}
+                  </button>
+                  {editingKPI && (
+                    <button type="button" onClick={cancelEditingKPI} className="flex-1 btn-secondary py-3">
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* Current KPIs */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Current KPIs</h3>
+                <div className="space-y-3">
+                  {kpis.map((kpi) => {
+                    const kpiProgress = entries.length > 0 
+                      ? entries[0].kpi_progress.find(p => p.kpi_id === kpi.id)
+                      : null;
+                    const progress = kpiProgress ? kpiProgress.progress : 0;
+                    const current = kpi.target_amount + progress;
+                    const percentage = Math.max(0, Math.min(100, (current / kpi.target_amount) * 100));
+                    
+                    return (
+                      <div key={kpi.id} className="p-4 border border-gray-200 rounded-xl">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div 
+                              className="w-4 h-4 rounded-full" 
+                              style={{ backgroundColor: kpi.color }}
+                            ></div>
+                            <div>
+                              <p className="font-medium text-gray-900">{kpi.name}</p>
+                              <p className="text-sm text-gray-500">{formatCurrency(kpi.target_amount)} target</p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => startEditingKPI(kpi)}
+                              className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 rounded"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteKPI(kpi.id)}
+                              className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Progress Preview */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Progress</span>
+                            <span className={progress >= 0 ? 'text-green-600' : 'text-red-600'}>
+                              {progress >= 0 ? '+' : ''}{formatCurrency(progress)}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full transition-all duration-300"
+                              style={{ 
+                                width: `${percentage}%`,
+                                backgroundColor: kpi.color
+                              }}
+                            ></div>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatCurrency(current)} / {formatCurrency(kpi.target_amount)} ({percentage.toFixed(1)}%)
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {kpis.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No KPIs created yet.</p>
+                      <p className="text-sm text-gray-400 mt-1">Add your first KPI above to start tracking your progress!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
