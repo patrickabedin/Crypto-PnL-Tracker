@@ -342,6 +342,8 @@ const CryptoPnLTracker = () => {
   useEffect(() => {
     if (user) {
       fetchData();
+      loadStartingBalances();
+      loadCapitalDeposits();
     }
   }, [user]);
 
