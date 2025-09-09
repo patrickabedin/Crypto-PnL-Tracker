@@ -963,108 +963,170 @@ async def sync_exchanges(current_user: dict = Depends(get_current_user)):
         logger.error(f"Error syncing exchanges: {e}")
         raise HTTPException(status_code=500, detail=f"Error syncing exchanges: {str(e)}")
 
-@api_router.post("/entries/auto-create")
-async def auto_create_entry_from_sync(
-    current_user: User = Depends(require_auth),
-    auto_sync: bool = True
-):
-    """Automatically create today's entry from real-time exchange data"""
+@app.post("/api/entries/auto-create")
+async def auto_create_entry_from_sync(current_user: dict = Depends(get_current_user)):
+    """Create entry from real-time exchange sync data"""
     try:
-        # First sync the balances
-        exchanges = await db.exchanges.find({
-            "user_id": current_user.id,
-            "is_active": True
-        }).to_list(100)
-        
-        balances = []
-        total_balance = 0.0
-        
-        # Get real-time data from each exchange
-        for exchange in exchanges:
-            if exchange["name"] == "kraken":
-                balance_data = await kraken_api.get_account_balance(user_id=current_user.id)
-                if balance_data['success']:
-                    balances.append({
-                        'exchange_id': exchange['id'],
-                        'amount': balance_data['balance_eur']
-                    })
-                    total_balance += balance_data['balance_eur']
-        
-        if not balances:
-            raise HTTPException(status_code=400, detail="No exchange balances available")
-        
-        # Check if entry for today already exists
+        user_id = current_user["id"]
         today = datetime.utcnow().date()
+        
+        # Check if entry already exists for today
         existing_entry = await db.pnl_entries.find_one({
-            "user_id": current_user.id,
+            "user_id": user_id,
             "date": today.isoformat()
         })
         
         if existing_entry:
             return {
                 "message": "Entry for today already exists",
-                "existing_entry_id": existing_entry.get("id", "unknown"),
-                "suggested_balances": balances
+                "entry_id": existing_entry.get("id"),
+                "date": today.isoformat(),
+                "existing": True
             }
         
-        # Create entry manually without Pydantic models to avoid serialization issues
-        entry_id = str(uuid.uuid4())
+        # Get all exchanges with recent successful syncs or try to sync now
+        exchanges = await db.exchanges.find({"user_id": user_id}).to_list(length=None)
+        balances = []
+        total_balance = 0.0
+        sync_errors = []
         
-        # Get previous entry for PnL calculation
+        for exchange in exchanges:
+            exchange_name = exchange["name"].lower()
+            
+            if exchange_name == "kraken":
+                # Try to get recent balance from last sync
+                last_balance = exchange.get("last_balance")
+                sync_status = exchange.get("sync_status")
+                last_sync = exchange.get("last_sync")
+                
+                # Check if we have recent data (within last hour)
+                recent_sync = False
+                if last_sync:
+                    time_diff = datetime.utcnow() - last_sync
+                    recent_sync = time_diff.total_seconds() < 3600  # 1 hour
+                
+                balance_eur = 0.0
+                
+                if recent_sync and sync_status == "success" and last_balance:
+                    # Use recent successful sync data
+                    balance_eur = last_balance
+                    logger.info(f"Using recent sync data for {exchange_name}: €{balance_eur}")
+                else:
+                    # Try to fetch fresh balance
+                    logger.info(f"Fetching fresh balance for {exchange_name}")
+                    balance_result = await kraken_api.get_account_balance(user_id=user_id)
+                    
+                    if balance_result['success']:
+                        balance_eur = balance_result['balance_eur']
+                        
+                        # Update exchange with fresh data
+                        await db.exchanges.update_one(
+                            {"id": exchange["id"], "user_id": user_id},
+                            {"$set": {
+                                "last_balance": balance_eur,
+                                "last_sync": datetime.utcnow(),
+                                "sync_status": "success"
+                            }}
+                        )
+                    else:
+                        error_msg = balance_result.get('error', 'Unknown error')
+                        sync_errors.append(f"{exchange_name}: {error_msg}")
+                        
+                        # Check if it's a rate limiting issue
+                        if "rate limiting" in error_msg.lower() or "lockout" in error_msg.lower():
+                            # If we have any previous balance data, use it with a warning
+                            if last_balance and last_balance > 0:
+                                balance_eur = last_balance
+                                sync_errors.append(f"{exchange_name}: Using previous balance due to rate limiting")
+                                logger.info(f"Using previous balance for {exchange_name} due to rate limiting: €{balance_eur}")
+                            else:
+                                logger.warning(f"No previous balance available for {exchange_name}, using 0")
+                        else:
+                            logger.error(f"Error fetching balance for {exchange_name}: {error_msg}")
+                
+                if balance_eur > 0:
+                    balances.append({
+                        "exchange_id": exchange["id"],
+                        "amount": balance_eur
+                    })
+                    total_balance += balance_eur
+            else:
+                # For other exchanges, use 0 for now
+                balances.append({
+                    "exchange_id": exchange["id"], 
+                    "amount": 0.0
+                })
+        
+        if not balances:
+            return {
+                "error": "No exchange balances available for entry creation",
+                "sync_errors": sync_errors,
+                "suggestion": "Please configure API keys or try manual sync first"
+            }
+        
+        # Calculate KPI progress
+        kpi_progress = []
+        for target in [5000, 10000, 15000]:
+            progress = total_balance - target
+            kpi_progress.append({
+                "target": target,
+                "progress": round(progress, 2),
+                "percentage": round((total_balance / target) * 100, 1) if target > 0 else 0
+            })
+        
+        # Calculate PnL compared to previous entry
         previous_entry = await db.pnl_entries.find_one(
-            {
-                "user_id": current_user.id,
-                "date": {"$lt": today.isoformat()}
-            }, 
+            {"user_id": user_id},
             sort=[("date", -1)]
         )
         
-        previous_total = previous_entry["total"] if previous_entry else total_balance
+        pnl_amount = 0.0
+        pnl_percentage = 0.0
         
-        # Get user's KPIs
-        user_kpis = await db.kpis.find({
-            "user_id": current_user.id,
-            "is_active": True
-        }).to_list(100)
+        if previous_entry:
+            previous_total = previous_entry.get("total", 0)
+            if previous_total > 0:
+                pnl_amount = total_balance - previous_total
+                pnl_percentage = (pnl_amount / previous_total) * 100
         
-        # Calculate metrics
-        pnl_metrics = calculate_pnl_metrics(total_balance, previous_total)
-        kpi_progress = calculate_kpi_progress(total_balance, user_kpis)
-        
-        # Create entry dict directly
-        entry_dict = {
-            "id": entry_id,
-            "user_id": current_user.id,
+        # Create new entry
+        new_entry = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
             "date": today.isoformat(),
             "balances": balances,
             "total": round(total_balance, 2),
-            "pnl_percentage": pnl_metrics["pnl_percentage"],
-            "pnl_amount": pnl_metrics["pnl_amount"],
+            "pnl_amount": round(pnl_amount, 2),
+            "pnl_percentage": round(pnl_percentage, 2),
             "kpi_progress": kpi_progress,
-            "notes": f"Auto-created from real-time sync at {datetime.utcnow().strftime('%H:%M UTC')}",
-            "created_at": datetime.utcnow().isoformat()
+            "notes": f"Auto-created from exchange sync - {datetime.utcnow().strftime('%H:%M')}",
+            "created_at": datetime.utcnow()
         }
+        # Add sync error information if present
+        if sync_errors:
+            new_entry["sync_warnings"] = sync_errors
         
-        # Insert directly into database
-        await db.pnl_entries.insert_one(entry_dict)
+        await db.pnl_entries.insert_one(new_entry)
         
-        # Recalculate PnL for subsequent entries
-        await recalculate_subsequent_entries(today, current_user.id)
-        
-        return {
-            "message": "Entry created successfully from real-time data",
-            "entry_id": entry_id,
+        response = {
+            "message": "Entry created successfully from exchange sync",
+            "entry_id": new_entry["id"],
             "total_balance": round(total_balance, 2),
-            "pnl_percentage": pnl_metrics["pnl_percentage"],
-            "pnl_amount": pnl_metrics["pnl_amount"],
-            "synced_exchanges": len(balances)
+            "pnl_amount": round(pnl_amount, 2),
+            "pnl_percentage": round(pnl_percentage, 2),
+            "date": today.isoformat(),
+            "exchanges_synced": len([b for b in balances if b["amount"] > 0])
         }
         
-    except HTTPException:
-        raise
+        if sync_errors:
+            response["warnings"] = sync_errors
+            response["message"] += " (with some sync warnings - check details)"
+        
+        return response
+        
     except Exception as e:
-        logger.error(f"Error in auto_create_entry_from_sync: {e}")
-        raise HTTPException(status_code=500, detail=f"Error creating entry: {str(e)}")
+        logger.error(f"Error creating auto entry: {e}")
+        raise HTTPException(status_code=500, detail=f"Error creating entry from sync data: {str(e)}")
 
 # Internal function for creating entries (extracted from the main endpoint)
 async def create_pnl_entry_internal(entry_data: PnLEntryCreate, current_user: User):
