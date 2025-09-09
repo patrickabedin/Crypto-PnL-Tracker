@@ -1003,9 +1003,20 @@ class CryptoPnLTester:
 
 if __name__ == "__main__":
     tester = CryptoPnLTester()
-    success = tester.run_all_tests()
     
-    if success:
+    # Run critical issue tests first
+    print("🎯 RUNNING CRITICAL ISSUE TESTS")
+    print("=" * 50)
+    critical_success = tester.run_critical_issue_tests()
+    
+    print("\n" + "=" * 50)
+    print("🔧 RUNNING COMPREHENSIVE API TESTS")
+    print("=" * 50)
+    
+    # Run comprehensive tests (original functionality)
+    comprehensive_success = tester.run_all_tests()
+    
+    if critical_success and comprehensive_success:
         print("\n🎉 All tests passed! Backend API is working correctly.")
         sys.exit(0)
     else:
