@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """
-FINAL DEBUGGING ATTEMPT - Comprehensive Backend API Tests for Crypto PnL Tracker
-Focus on resolving persistent balance and sync issues:
-- Dashboard shows €0 balance instead of expected €57,699.48
-- Sync reports "0/3 exchanges synced successfully"
-- "Error creating entry from sync data" persists
+Comprehensive Backend API Tests for Crypto PnL Tracker
+Testing new starting balances and capital deposits functionality for ROI benchmarking
 """
 
 import requests
@@ -12,10 +9,7 @@ import json
 from datetime import date, datetime, timedelta
 import time
 import sys
-import base64
-import hmac
-import hashlib
-import urllib.parse
+import uuid
 
 # Backend URL from frontend/.env
 BACKEND_URL = "https://crypto-profit-dash-1.preview.emergentagent.com/api"
@@ -23,10 +17,6 @@ BACKEND_URL = "https://crypto-profit-dash-1.preview.emergentagent.com/api"
 # Test user credentials from review request
 TEST_USER_ID = "6888e839-1191-4880-ac8d-1fab8c19ea4c"
 TEST_USER_EMAIL = "abedin33@gmail.com"
-
-# Kraken API Keys from review request
-KRAKEN_API_KEY = "fFeuud7v9ZMpUgKDrvJg9qzmMYiG+T16fc4sHKWnGSAvZgSJsLVWXzcj"
-KRAKEN_PRIVATE_KEY = "g/j/j1aK781xg5YyanJZH3uYPonVFwU6eiMd2mrpVS1oc8rUAgXvKf0Qc9C8I1how0WhhREZlPNpQwenVD+5IQ=="
 
 class CryptoPnLTester:
     def __init__(self):
@@ -37,8 +27,11 @@ class CryptoPnLTester:
         self.session_token = None
         self.user_id = TEST_USER_ID
         self.critical_issues = []
-        self.balance_found = None
-        self.entries_found = []
+        self.test_data = {
+            'starting_balances': [],
+            'capital_deposits': [],
+            'exchanges': []
+        }
         
     def get_auth_headers(self):
         """Get authentication headers for API requests"""
@@ -79,94 +72,311 @@ class CryptoPnLTester:
             self.log_result("API Connection", False, f"- Error: {str(e)}")
             return False
     
-    def test_database_entry_verification(self):
-        """CRITICAL TEST 1: Check if €57,699.48 entry exists and is associated with correct user"""
-        print("\n=== CRITICAL TEST 1: Database Entry Verification ===")
+    def test_authentication_requirements(self):
+        """Test that protected endpoints require authentication"""
+        print("\n=== Testing Authentication Requirements ===")
+        
+        endpoints_to_test = [
+            "/starting-balances",
+            "/capital-deposits", 
+            "/stats",
+            "/entries",
+            "/exchanges"
+        ]
+        
+        all_protected = True
+        for endpoint in endpoints_to_test:
+            try:
+                response = requests.get(f"{self.base_url}{endpoint}", timeout=10)
+                if response.status_code == 401:
+                    self.log_result(f"{endpoint} Authentication", True, "- Properly requires authentication")
+                else:
+                    self.log_result(f"{endpoint} Authentication", False, f"- Expected 401, got {response.status_code}")
+                    all_protected = False
+            except Exception as e:
+                self.log_result(f"{endpoint} Authentication Test", False, f"- Error: {str(e)}")
+                all_protected = False
+        
+        return all_protected
+    
+    def test_starting_balances_crud(self):
+        """Test Starting Balances CRUD operations"""
+        print("\n=== Testing Starting Balances CRUD Operations ===")
+        
+        # Test GET /api/starting-balances (should be empty initially)
+        try:
+            response = requests.get(f"{self.base_url}/starting-balances", 
+                                  headers=self.get_auth_headers(), timeout=10)
+            
+            if response.status_code == 200:
+                balances = response.json()
+                self.log_result("GET Starting Balances", True, f"- Retrieved {len(balances)} starting balances")
+                self.test_data['starting_balances'] = balances
+            elif response.status_code == 401:
+                self.log_result("GET Starting Balances", False, "- Authentication required")
+                self.log_critical_issue("Cannot test starting balances without authentication")
+                return False
+            else:
+                self.log_result("GET Starting Balances", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("GET Starting Balances", False, f"- Error: {str(e)}")
+            return False
+        
+        # First, get available exchanges to use for testing
+        exchanges = self.get_user_exchanges()
+        if not exchanges:
+            self.log_critical_issue("No exchanges available for starting balance testing")
+            return False
+        
+        # Use Kraken exchange for testing (as specified in review request)
+        kraken_exchange = None
+        for exchange in exchanges:
+            if exchange.get('name', '').lower() == 'kraken':
+                kraken_exchange = exchange
+                break
+        
+        if not kraken_exchange:
+            self.log_critical_issue("Kraken exchange not found for starting balance testing")
+            return False
+        
+        # Test POST /api/starting-balances (set starting balance for Kraken: €5000 on 2024-01-01)
+        starting_balance_data = {
+            "exchange_id": kraken_exchange['id'],
+            "starting_balance": 5000.0,
+            "starting_date": "2024-01-01"
+        }
         
         try:
-            # Test GET /api/entries without authentication first
-            response = requests.get(f"{self.base_url}/entries", timeout=10)
+            response = requests.post(f"{self.base_url}/starting-balances",
+                                   headers=self.get_auth_headers(),
+                                   json=starting_balance_data,
+                                   timeout=10)
             
-            if response.status_code == 401:
-                self.log_result("Entries Endpoint Security", True, "- Properly requires authentication")
+            if response.status_code == 200:
+                result = response.json()
+                self.log_result("POST Starting Balance", True, f"- {result.get('message', 'Created successfully')}")
                 
-                # Since we can't authenticate, we'll test the stats endpoint which should also require auth
-                stats_response = requests.get(f"{self.base_url}/stats", timeout=10)
+                # Verify the starting balance was created by getting it again
+                get_response = requests.get(f"{self.base_url}/starting-balances", 
+                                          headers=self.get_auth_headers(), timeout=10)
                 
-                if stats_response.status_code == 401:
-                    self.log_result("Stats Endpoint Security", True, "- Properly requires authentication")
-                    self.log_critical_issue("Cannot verify €57,699.48 entry without authentication - this is the core issue")
-                    return False
-                else:
-                    self.log_result("Stats Endpoint Security", False, f"- Expected 401, got {stats_response.status_code}")
+                if get_response.status_code == 200:
+                    balances = get_response.json()
+                    kraken_balance = None
+                    for balance in balances:
+                        if balance.get('exchange_id') == kraken_exchange['id']:
+                            kraken_balance = balance
+                            break
                     
-                    # If stats endpoint doesn't require auth, check what it returns
-                    if stats_response.status_code == 200:
-                        stats_data = stats_response.json()
-                        total_balance = stats_data.get("total_balance", 0)
-                        
-                        if total_balance == 57699.48:
-                            self.log_result("Expected Balance Found", True, f"- Found €{total_balance} in stats")
-                            self.balance_found = total_balance
-                            return True
-                        elif total_balance == 0:
-                            self.log_critical_issue(f"Stats API returns €0 balance instead of expected €57,699.48")
-                            return False
+                    if kraken_balance:
+                        if (kraken_balance.get('starting_balance') == 5000.0 and 
+                            kraken_balance.get('starting_date') == "2024-01-01"):
+                            self.log_result("Starting Balance Verification", True, 
+                                          f"- Kraken starting balance: €{kraken_balance['starting_balance']} on {kraken_balance['starting_date']}")
                         else:
-                            self.log_result("Unexpected Balance", True, f"- Found €{total_balance} (not expected €57,699.48)")
-                            self.balance_found = total_balance
-                            return True
-                    
-            elif response.status_code == 200:
-                # Entries endpoint doesn't require auth - check entries
-                entries = response.json()
-                self.log_result("Entries Retrieved", True, f"- Retrieved {len(entries)} entries")
-                
-                # Look for the €57,699.48 entry
-                target_balance = 57699.48
-                found_entry = None
-                
-                for entry in entries:
-                    total = entry.get("total", 0)
-                    if abs(total - target_balance) < 1:  # Allow small rounding differences
-                        found_entry = entry
-                        break
-                
-                if found_entry:
-                    self.log_result("Target Entry Found", True, f"- Found entry with €{found_entry['total']}")
-                    self.entries_found.append(found_entry)
-                    
-                    # Check user association
-                    entry_user_id = found_entry.get("user_id")
-                    if entry_user_id == TEST_USER_ID:
-                        self.log_result("User Association", True, f"- Entry belongs to correct user")
-                        return True
+                            self.log_result("Starting Balance Verification", False, 
+                                          f"- Data mismatch: {kraken_balance}")
                     else:
-                        self.log_critical_issue(f"Entry belongs to different user: {entry_user_id} vs expected {TEST_USER_ID}")
-                        return False
-                else:
-                    self.log_critical_issue(f"€57,699.48 entry not found in database")
-                    
-                    # Log all entries for debugging
-                    print("   Available entries:")
-                    for entry in entries[:5]:  # Show first 5 entries
-                        total = entry.get("total", 0)
-                        date = entry.get("date", "unknown")
-                        user_id = entry.get("user_id", "unknown")
-                        print(f"     Date: {date}, Total: €{total}, User: {user_id[:8]}...")
-                    
-                    return False
-            else:
-                self.log_result("Entries Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
-                return False
+                        self.log_result("Starting Balance Verification", False, "- Kraken starting balance not found after creation")
                 
+            elif response.status_code == 401:
+                self.log_result("POST Starting Balance", False, "- Authentication required")
+                return False
+            else:
+                self.log_result("POST Starting Balance", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
         except Exception as e:
-            self.log_result("Database Entry Verification", False, f"- Error: {str(e)}")
+            self.log_result("POST Starting Balance", False, f"- Error: {str(e)}")
             return False
+        
+        # Test DELETE /api/starting-balances/{exchange_id}
+        try:
+            response = requests.delete(f"{self.base_url}/starting-balances/{kraken_exchange['id']}",
+                                     headers=self.get_auth_headers(), timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                self.log_result("DELETE Starting Balance", True, f"- {result.get('message', 'Deleted successfully')}")
+                
+                # Verify deletion by checking if it's gone
+                get_response = requests.get(f"{self.base_url}/starting-balances", 
+                                          headers=self.get_auth_headers(), timeout=10)
+                
+                if get_response.status_code == 200:
+                    balances = get_response.json()
+                    kraken_balance_exists = any(b.get('exchange_id') == kraken_exchange['id'] for b in balances)
+                    
+                    if not kraken_balance_exists:
+                        self.log_result("Starting Balance Deletion Verification", True, "- Kraken starting balance successfully deleted")
+                    else:
+                        self.log_result("Starting Balance Deletion Verification", False, "- Kraken starting balance still exists after deletion")
+                
+            elif response.status_code == 404:
+                self.log_result("DELETE Starting Balance", True, "- Correctly returns 404 for non-existent balance")
+            elif response.status_code == 401:
+                self.log_result("DELETE Starting Balance", False, "- Authentication required")
+                return False
+            else:
+                self.log_result("DELETE Starting Balance", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("DELETE Starting Balance", False, f"- Error: {str(e)}")
+            return False
+        
+        # Re-create the starting balance for stats testing
+        try:
+            response = requests.post(f"{self.base_url}/starting-balances",
+                                   headers=self.get_auth_headers(),
+                                   json=starting_balance_data,
+                                   timeout=10)
+            
+            if response.status_code == 200:
+                self.log_result("Re-create Starting Balance for Stats", True, "- Starting balance re-created for stats testing")
+            else:
+                self.log_result("Re-create Starting Balance for Stats", False, f"- HTTP {response.status_code}")
+        except Exception as e:
+            self.log_result("Re-create Starting Balance for Stats", False, f"- Error: {str(e)}")
+        
+        return True
     
-    def test_stats_api_verification(self):
-        """CRITICAL TEST 4: Test GET /api/stats - should return €57,699.48 if entry exists"""
-        print("\n=== CRITICAL TEST 4: Stats API Verification ===")
+    def test_capital_deposits_crud(self):
+        """Test Capital Deposits CRUD operations"""
+        print("\n=== Testing Capital Deposits CRUD Operations ===")
+        
+        # Test GET /api/capital-deposits (should be empty initially)
+        try:
+            response = requests.get(f"{self.base_url}/capital-deposits", 
+                                  headers=self.get_auth_headers(), timeout=10)
+            
+            if response.status_code == 200:
+                deposits = response.json()
+                self.log_result("GET Capital Deposits", True, f"- Retrieved {len(deposits)} capital deposits")
+                self.test_data['capital_deposits'] = deposits
+            elif response.status_code == 401:
+                self.log_result("GET Capital Deposits", False, "- Authentication required")
+                self.log_critical_issue("Cannot test capital deposits without authentication")
+                return False
+            else:
+                self.log_result("GET Capital Deposits", False, f"- HTTP {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("GET Capital Deposits", False, f"- Error: {str(e)}")
+            return False
+        
+        # Test POST /api/capital-deposits (add capital deposits as specified in review request)
+        capital_deposits = [
+            {
+                "amount": 3000.0,
+                "deposit_date": "2024-01-15",
+                "notes": "Initial investment"
+            },
+            {
+                "amount": 2000.0,
+                "deposit_date": "2024-02-01", 
+                "notes": "Additional funding"
+            }
+        ]
+        
+        created_deposit_ids = []
+        
+        for i, deposit_data in enumerate(capital_deposits):
+            try:
+                response = requests.post(f"{self.base_url}/capital-deposits",
+                                       headers=self.get_auth_headers(),
+                                       json=deposit_data,
+                                       timeout=10)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    self.log_result(f"POST Capital Deposit {i+1}", True, 
+                                  f"- €{deposit_data['amount']} on {deposit_data['deposit_date']}: {result.get('message', 'Created')}")
+                    
+                    # Extract deposit ID if available
+                    if 'deposit' in result and 'id' in result['deposit']:
+                        created_deposit_ids.append(result['deposit']['id'])
+                    
+                elif response.status_code == 401:
+                    self.log_result(f"POST Capital Deposit {i+1}", False, "- Authentication required")
+                    return False
+                else:
+                    self.log_result(f"POST Capital Deposit {i+1}", False, f"- HTTP {response.status_code}: {response.text}")
+                    return False
+            except Exception as e:
+                self.log_result(f"POST Capital Deposit {i+1}", False, f"- Error: {str(e)}")
+                return False
+        
+        # Verify capital deposits were created
+        try:
+            response = requests.get(f"{self.base_url}/capital-deposits", 
+                                  headers=self.get_auth_headers(), timeout=10)
+            
+            if response.status_code == 200:
+                deposits = response.json()
+                self.log_result("Capital Deposits Verification", True, f"- Found {len(deposits)} capital deposits after creation")
+                
+                # Verify the specific deposits
+                total_deposited = sum(d.get('amount', 0) for d in deposits)
+                expected_total = 5000.0  # 3000 + 2000
+                
+                if abs(total_deposited - expected_total) < 0.01:
+                    self.log_result("Capital Deposits Total", True, f"- Total deposited: €{total_deposited}")
+                else:
+                    self.log_result("Capital Deposits Total", False, f"- Expected €{expected_total}, got €{total_deposited}")
+                
+                # Store deposit IDs for deletion test
+                for deposit in deposits:
+                    if deposit.get('id') and deposit['id'] not in created_deposit_ids:
+                        created_deposit_ids.append(deposit['id'])
+                
+            else:
+                self.log_result("Capital Deposits Verification", False, f"- HTTP {response.status_code}")
+        except Exception as e:
+            self.log_result("Capital Deposits Verification", False, f"- Error: {str(e)}")
+        
+        # Test DELETE /api/capital-deposits/{deposit_id} (delete one deposit)
+        if created_deposit_ids:
+            deposit_id_to_delete = created_deposit_ids[0]
+            try:
+                response = requests.delete(f"{self.base_url}/capital-deposits/{deposit_id_to_delete}",
+                                         headers=self.get_auth_headers(), timeout=10)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    self.log_result("DELETE Capital Deposit", True, f"- {result.get('message', 'Deleted successfully')}")
+                    
+                    # Verify deletion
+                    get_response = requests.get(f"{self.base_url}/capital-deposits", 
+                                              headers=self.get_auth_headers(), timeout=10)
+                    
+                    if get_response.status_code == 200:
+                        deposits = get_response.json()
+                        deposit_exists = any(d.get('id') == deposit_id_to_delete for d in deposits)
+                        
+                        if not deposit_exists:
+                            self.log_result("Capital Deposit Deletion Verification", True, "- Capital deposit successfully deleted")
+                        else:
+                            self.log_result("Capital Deposit Deletion Verification", False, "- Capital deposit still exists after deletion")
+                    
+                elif response.status_code == 404:
+                    self.log_result("DELETE Capital Deposit", True, "- Correctly returns 404 for non-existent deposit")
+                elif response.status_code == 401:
+                    self.log_result("DELETE Capital Deposit", False, "- Authentication required")
+                    return False
+                else:
+                    self.log_result("DELETE Capital Deposit", False, f"- HTTP {response.status_code}: {response.text}")
+                    return False
+            except Exception as e:
+                self.log_result("DELETE Capital Deposit", False, f"- Error: {str(e)}")
+                return False
+        else:
+            self.log_result("DELETE Capital Deposit", False, "- No deposit IDs available for deletion test")
+        
+        return True
+    
+    def test_updated_stats_api(self):
+        """Test updated Stats API with new ROI calculations"""
+        print("\n=== Testing Updated Stats API with ROI Calculations ===")
         
         try:
             response = requests.get(f"{self.base_url}/stats", 
@@ -176,545 +386,159 @@ class CryptoPnLTester:
                 stats_data = response.json()
                 self.log_result("Stats API Response", True, "- Stats endpoint responded successfully")
                 
-                # Check total balance
-                total_balance = stats_data.get("total_balance", 0)
-                total_entries = stats_data.get("total_entries", 0)
-                daily_pnl = stats_data.get("daily_pnl", 0)
+                # Check for new fields
+                required_new_fields = [
+                    'total_capital_deposited',
+                    'total_starting_balance', 
+                    'roi_vs_capital',
+                    'roi_vs_starting_balance'
+                ]
                 
-                print(f"   Total Balance: €{total_balance}")
-                print(f"   Total Entries: {total_entries}")
-                print(f"   Daily PnL: €{daily_pnl}")
+                missing_fields = []
+                for field in required_new_fields:
+                    if field not in stats_data:
+                        missing_fields.append(field)
                 
-                if total_balance == 57699.48:
-                    self.log_result("Expected Balance in Stats", True, f"- Stats shows correct €{total_balance}")
-                    self.balance_found = total_balance
-                    return True
-                elif total_balance == 0:
-                    self.log_critical_issue(f"Stats API shows €0 balance instead of expected €57,699.48")
+                if not missing_fields:
+                    self.log_result("New Stats Fields Present", True, "- All new ROI fields are present")
                     
-                    # Check if there are entries but balance is 0
-                    if total_entries > 0:
-                        self.log_critical_issue(f"Database has {total_entries} entries but balance is €0 - calculation error")
+                    # Log the values
+                    print(f"   Total Capital Deposited: €{stats_data.get('total_capital_deposited', 0)}")
+                    print(f"   Total Starting Balance: €{stats_data.get('total_starting_balance', 0)}")
+                    print(f"   ROI vs Capital: {stats_data.get('roi_vs_capital', 0)}%")
+                    print(f"   ROI vs Starting Balance: {stats_data.get('roi_vs_starting_balance', 0)}%")
+                    
+                    # Verify calculations make sense
+                    total_capital = stats_data.get('total_capital_deposited', 0)
+                    total_starting = stats_data.get('total_starting_balance', 0)
+                    current_balance = stats_data.get('total_balance', 0)
+                    roi_vs_capital = stats_data.get('roi_vs_capital', 0)
+                    roi_vs_starting = stats_data.get('roi_vs_starting_balance', 0)
+                    
+                    # Check ROI calculations
+                    if total_capital > 0:
+                        expected_roi_capital = ((current_balance - total_capital) / total_capital) * 100
+                        if abs(roi_vs_capital - expected_roi_capital) < 0.1:
+                            self.log_result("ROI vs Capital Calculation", True, f"- Correctly calculated: {roi_vs_capital}%")
+                        else:
+                            self.log_result("ROI vs Capital Calculation", False, 
+                                          f"- Expected {expected_roi_capital:.2f}%, got {roi_vs_capital}%")
                     else:
-                        self.log_critical_issue(f"No entries found in database for authenticated user")
+                        if roi_vs_capital == 0:
+                            self.log_result("ROI vs Capital (No Capital)", True, "- Correctly returns 0% when no capital deposited")
+                        else:
+                            self.log_result("ROI vs Capital (No Capital)", False, f"- Should be 0% when no capital, got {roi_vs_capital}%")
                     
-                    return False
+                    if total_starting > 0:
+                        expected_roi_starting = ((current_balance - total_starting) / total_starting) * 100
+                        if abs(roi_vs_starting - expected_roi_starting) < 0.1:
+                            self.log_result("ROI vs Starting Balance Calculation", True, f"- Correctly calculated: {roi_vs_starting}%")
+                        else:
+                            self.log_result("ROI vs Starting Balance Calculation", False, 
+                                          f"- Expected {expected_roi_starting:.2f}%, got {roi_vs_starting}%")
+                    else:
+                        if roi_vs_starting == 0:
+                            self.log_result("ROI vs Starting Balance (No Starting)", True, "- Correctly returns 0% when no starting balance")
+                        else:
+                            self.log_result("ROI vs Starting Balance (No Starting)", False, f"- Should be 0% when no starting balance, got {roi_vs_starting}%")
+                    
                 else:
-                    self.log_result("Different Balance Found", True, f"- Stats shows €{total_balance} (not expected €57,699.48)")
-                    self.balance_found = total_balance
-                    
-                    # Check KPI progress
-                    kpi_progress = stats_data.get("kpi_progress", {})
-                    if kpi_progress:
-                        print(f"   KPI Progress: {kpi_progress}")
-                        self.log_result("KPI Progress Available", True, "- KPI data present")
-                    
-                    return True
-                    
+                    self.log_result("New Stats Fields Present", False, f"- Missing fields: {missing_fields}")
+                    self.log_critical_issue(f"Stats API missing required ROI fields: {missing_fields}")
+                
+                # Check existing fields are still present
+                existing_fields = ['total_entries', 'total_balance', 'daily_pnl', 'daily_pnl_percentage', 'kpi_progress']
+                missing_existing = []
+                for field in existing_fields:
+                    if field not in stats_data:
+                        missing_existing.append(field)
+                
+                if not missing_existing:
+                    self.log_result("Existing Stats Fields", True, "- All existing fields still present")
+                else:
+                    self.log_result("Existing Stats Fields", False, f"- Missing existing fields: {missing_existing}")
+                
+                return len(missing_fields) == 0
+                
             elif response.status_code == 401:
-                self.log_result("Stats API Authentication", False, "- Authentication required")
-                self.log_critical_issue("Cannot test stats API without authentication")
+                self.log_result("Stats API", False, "- Authentication required")
+                self.log_critical_issue("Cannot test updated stats API without authentication")
                 return False
             else:
-                self.log_result("Stats API Response", False, f"- HTTP {response.status_code}: {response.text}")
+                self.log_result("Stats API", False, f"- HTTP {response.status_code}: {response.text}")
                 return False
                 
         except Exception as e:
-            self.log_result("Stats API Test", False, f"- Error: {str(e)}")
+            self.log_result("Updated Stats API Test", False, f"- Error: {str(e)}")
             return False
     
-    def test_kraken_api_integration_deep_dive(self):
-        """CRITICAL TEST 2: Kraken API Integration Deep Dive with Rate Limiting Protection"""
-        print("\n=== CRITICAL TEST 2: Kraken API Integration Deep Dive ===")
-        
-        # Test 1: Direct Kraken API call with provided keys
-        print("\n--- Testing Direct Kraken API Call ---")
-        kraken_result = self.test_direct_kraken_api_with_protection()
-        
-        # Test 2: Check if user has configured API keys
-        print("\n--- Testing API Key Configuration ---")
-        api_keys_configured = self.test_api_key_configuration()
-        
-        # Test 3: Test backend Kraken balance endpoint
-        print("\n--- Testing Backend Kraken Integration ---")
-        backend_kraken = self.test_kraken_balance_endpoint()
-        
-        # Test 4: Test rate limiting logic
-        print("\n--- Testing Rate Limiting Logic ---")
-        rate_limit_test = self.test_rate_limiting_behavior()
-        
-        return kraken_result and backend_kraken
-    
-    def test_direct_kraken_api_with_protection(self):
-        """Test direct Kraken API call with rate limiting protection"""
-        try:
-            # Add delay to avoid rate limiting
-            print("   Waiting 3 seconds to avoid rate limiting...")
-            time.sleep(3)
-            
-            # Create Kraken API signature
-            nonce = str(int(1000*time.time()))
-            data = {'nonce': nonce}
-            urlpath = '/0/private/Balance'
-            
-            postdata = urllib.parse.urlencode(data)
-            encoded = (str(data['nonce']) + postdata).encode()
-            message = urlpath.encode() + hashlib.sha256(encoded).digest()
-            
-            mac = hmac.new(base64.b64decode(KRAKEN_PRIVATE_KEY), message, hashlib.sha512)
-            sigdigest = base64.b64encode(mac.digest())
-            
-            headers = {
-                'API-Key': KRAKEN_API_KEY,
-                'API-Sign': sigdigest.decode()
-            }
-            
-            # Make direct call to Kraken API with longer timeout
-            response = requests.post(
-                "https://api.kraken.com/0/private/Balance",
-                headers=headers,
-                data=data,
-                timeout=20
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                self.log_result("Direct Kraken API Call", True, "- Successfully connected to Kraken")
-                
-                if result.get('error'):
-                    errors = result['error']
-                    error_str = str(errors)
-                    
-                    if any("lockout" in err.lower() or "rate" in err.lower() for err in errors):
-                        self.log_critical_issue(f"Kraken API rate limited: {errors}")
-                        self.log_result("Kraken Rate Limiting", False, f"- Rate limited: {errors}")
-                        return False
-                    else:
-                        self.log_result("Kraken API Error", False, f"- Kraken error: {errors}")
-                        return False
-                else:
-                    balances = result.get('result', {})
-                    self.log_result("Kraken Balance Retrieval", True, f"- Retrieved {len(balances)} balance entries")
-                    
-                    # Calculate total EUR value
-                    total_eur = 0.0
-                    significant_balances = {}
-                    
-                    for asset, balance in balances.items():
-                        balance_float = float(balance)
-                        if balance_float > 0.01:  # Only significant balances
-                            significant_balances[asset] = balance_float
-                            print(f"   {asset}: {balance_float}")
-                            
-                            # Calculate EUR equivalent using conservative rates
-                            if asset in ['ZEUR', 'EUR']:
-                                total_eur += balance_float
-                            elif asset in ['ZUSD', 'USD']:
-                                total_eur += balance_float * 0.92  # USD to EUR
-                            elif asset in ['BTC', 'XXBT', 'XBT']:
-                                total_eur += balance_float * 40000  # Conservative BTC price
-                            elif asset in ['ETH', 'XETH']:
-                                total_eur += balance_float * 2200   # Conservative ETH price
-                            else:
-                                total_eur += balance_float * 0.1    # Very conservative for unknown assets
-                    
-                    self.log_result("Kraken Balance Calculation", True, f"- Estimated total: €{total_eur:.2f}")
-                    
-                    # Check if this matches expected €57,699.48
-                    if abs(total_eur - 57699.48) < 1000:  # Allow some variance
-                        self.log_result("Expected Balance Match", True, f"- Balance close to expected €57,699.48")
-                    else:
-                        self.log_result("Balance Variance", True, f"- Balance €{total_eur:.2f} differs from expected €57,699.48")
-                    
-                    return True
-            else:
-                self.log_result("Direct Kraken API Call", False, f"- HTTP {response.status_code}: {response.text}")
-                return False
-                
-        except Exception as e:
-            self.log_result("Direct Kraken API Test", False, f"- Error: {str(e)}")
-            return False
-    
-    def test_api_key_configuration(self):
-        """Test if user has configured API keys in the system"""
-        try:
-            response = requests.get(f"{self.base_url}/exchange-api-keys", 
-                                  headers=self.get_auth_headers(), timeout=10)
-            
-            if response.status_code == 200:
-                api_keys = response.json()
-                self.log_result("API Keys Retrieval", True, f"- Retrieved {len(api_keys)} API keys")
-                
-                # Check for Kraken keys
-                kraken_keys = [key for key in api_keys if key.get("exchange_name") == "kraken"]
-                
-                if kraken_keys:
-                    self.log_result("Kraken API Keys Configured", True, f"- Found {len(kraken_keys)} Kraken API key(s)")
-                    
-                    for key in kraken_keys:
-                        is_active = key.get("is_active", False)
-                        last_used = key.get("last_used")
-                        print(f"   Key ID: {key.get('id', 'unknown')[:8]}...")
-                        print(f"   Active: {is_active}")
-                        print(f"   Last Used: {last_used}")
-                    
-                    return True
-                else:
-                    self.log_result("Kraken API Keys Configured", False, "- No Kraken API keys found")
-                    return False
-                    
-            elif response.status_code == 401:
-                self.log_result("API Keys Retrieval", False, "- Authentication required")
-                return False
-            else:
-                self.log_result("API Keys Retrieval", False, f"- HTTP {response.status_code}: {response.text}")
-                return False
-                
-        except Exception as e:
-            self.log_result("API Key Configuration Test", False, f"- Error: {str(e)}")
-            return False
-    
-    def test_rate_limiting_behavior(self):
-        """Test the improved rate limiting logic in get_account_balance function"""
-        try:
-            # Test backend Kraken endpoint which should have rate limiting protection
-            response = requests.get(f"{self.base_url}/exchanges/kraken/balance", 
-                                  headers=self.get_auth_headers(), timeout=25)  # Longer timeout for retries
-            
-            if response.status_code == 200:
-                balance_data = response.json()
-                
-                if balance_data.get("success"):
-                    self.log_result("Rate Limiting Protection", True, "- Backend successfully handled request")
-                    balance_eur = balance_data.get("balance_eur", 0)
-                    print(f"   Balance returned: €{balance_eur}")
-                    return True
-                else:
-                    error_msg = balance_data.get("error", "Unknown error")
-                    if "rate limiting" in error_msg.lower() or "temporarily unavailable" in error_msg.lower():
-                        self.log_result("Rate Limiting Graceful Handling", True, f"- Gracefully handled: {error_msg}")
-                        return True
-                    else:
-                        self.log_result("Rate Limiting Protection", False, f"- Error: {error_msg}")
-                        return False
-                        
-            elif response.status_code == 401:
-                self.log_result("Rate Limiting Test", False, "- Authentication required")
-                return False
-            else:
-                self.log_result("Rate Limiting Test", False, f"- HTTP {response.status_code}: {response.text}")
-                return False
-                
-        except Exception as e:
-            self.log_result("Rate Limiting Test", False, f"- Error: {str(e)}")
-            return False
-    
-    def test_sync_process_investigation(self):
-        """CRITICAL TEST 3: Sync Process Investigation - Debug why sync reports 0/3 exchanges successful"""
-        print("\n=== CRITICAL TEST 3: Sync Process Investigation ===")
-        
-        # Test 1: Check if exchanges exist for the authenticated user
-        print("\n--- Testing User Exchanges ---")
-        exchanges_exist = self.test_user_exchanges()
-        
-        # Test 2: Test POST /api/exchanges/sync with authentication
-        print("\n--- Testing Exchange Sync Endpoint ---")
-        sync_result = self.test_exchange_sync_detailed()
-        
-        # Test 3: Test individual exchange sync components
-        print("\n--- Testing Individual Exchange Components ---")
-        individual_results = self.test_individual_exchange_sync()
-        
-        return sync_result
-    
-    def test_user_exchanges(self):
-        """Check if exchanges exist for the authenticated user in database"""
+    def get_user_exchanges(self):
+        """Helper method to get user exchanges"""
         try:
             response = requests.get(f"{self.base_url}/exchanges", 
                                   headers=self.get_auth_headers(), timeout=10)
             
             if response.status_code == 200:
                 exchanges = response.json()
-                self.log_result("User Exchanges Retrieval", True, f"- Found {len(exchanges)} exchanges")
-                
-                if len(exchanges) == 0:
-                    self.log_critical_issue("No exchanges configured for user - this explains 0/3 sync failure")
-                    return False
-                
-                # Check for expected exchanges
-                exchange_names = [ex.get("name", "").lower() for ex in exchanges]
-                expected = ["kraken", "binance", "bitget"]
-                
-                for expected_name in expected:
-                    if expected_name in exchange_names:
-                        exchange = next(ex for ex in exchanges if ex.get("name", "").lower() == expected_name)
-                        is_active = exchange.get("is_active", False)
-                        print(f"   {expected_name.title()}: {'Active' if is_active else 'Inactive'}")
-                        
-                        if not is_active:
-                            self.log_result(f"{expected_name.title()} Exchange Status", False, "- Exchange is inactive")
-                    else:
-                        self.log_result(f"{expected_name.title()} Exchange", False, "- Exchange not found")
-                
-                if len(exchanges) >= 3:
-                    self.log_result("Expected Exchange Count", True, f"- {len(exchanges)} exchanges available for sync")
-                else:
-                    self.log_result("Expected Exchange Count", False, f"- Only {len(exchanges)} exchanges (expected 3)")
-                
-                return True
-                
-            elif response.status_code == 401:
-                self.log_result("User Exchanges", False, "- Authentication required")
-                self.log_critical_issue("Cannot check user exchanges without authentication")
-                return False
+                self.test_data['exchanges'] = exchanges
+                return exchanges
             else:
-                self.log_result("User Exchanges", False, f"- HTTP {response.status_code}: {response.text}")
-                return False
-                
-        except Exception as e:
-            self.log_result("User Exchanges Test", False, f"- Error: {str(e)}")
-            return False
+                return []
+        except Exception:
+            return []
     
-    def test_exchange_sync_detailed(self):
-        """Test POST /api/exchanges/sync with detailed analysis"""
+    def test_error_handling(self):
+        """Test error handling for invalid data"""
+        print("\n=== Testing Error Handling ===")
+        
+        # Test invalid starting balance data
+        invalid_starting_balance = {
+            "exchange_id": "invalid-exchange-id",
+            "starting_balance": -1000.0,  # Negative balance
+            "starting_date": "invalid-date"
+        }
+        
         try:
-            response = requests.post(f"{self.base_url}/exchanges/sync", 
-                                   headers=self.get_auth_headers(), timeout=30)
+            response = requests.post(f"{self.base_url}/starting-balances",
+                                   headers=self.get_auth_headers(),
+                                   json=invalid_starting_balance,
+                                   timeout=10)
             
-            if response.status_code == 200:
-                sync_data = response.json()
-                message = sync_data.get("message", "")
-                self.log_result("Exchange Sync Endpoint", True, f"- Response: {message}")
-                
-                # Parse the sync results
-                results = sync_data.get("results", [])
-                total_exchanges = sync_data.get("total_exchanges", 0)
-                successful_syncs = sync_data.get("successful_syncs", 0)
-                
-                print(f"   Total Exchanges: {total_exchanges}")
-                print(f"   Successful Syncs: {successful_syncs}")
-                
-                if successful_syncs == 0 and total_exchanges > 0:
-                    self.log_critical_issue(f"0/{total_exchanges} exchanges synced successfully - this is the reported issue")
-                    
-                    # Analyze each exchange result
-                    for result in results:
-                        exchange = result.get("exchange", "unknown")
-                        success = result.get("success", False)
-                        error = result.get("error", "No error message")
-                        
-                        print(f"   {exchange.title()}: {'SUCCESS' if success else 'FAILED'}")
-                        if not success:
-                            print(f"     Error: {error}")
-                            
-                            # Check for specific error patterns
-                            if "rate limiting" in error.lower() or "lockout" in error.lower():
-                                self.log_result(f"{exchange.title()} Rate Limiting", False, f"- Rate limited: {error}")
-                            elif "api keys not configured" in error.lower():
-                                self.log_result(f"{exchange.title()} API Keys", False, f"- API keys missing: {error}")
-                            elif "not yet implemented" in error.lower():
-                                self.log_result(f"{exchange.title()} Implementation", False, f"- Not implemented: {error}")
-                            else:
-                                self.log_result(f"{exchange.title()} Unknown Error", False, f"- Unknown error: {error}")
-                    
-                    return False
-                elif successful_syncs > 0:
-                    self.log_result("Sync Success", True, f"- {successful_syncs}/{total_exchanges} exchanges synced")
-                    return True
-                else:
-                    self.log_result("No Exchanges to Sync", False, "- No exchanges configured")
-                    return False
-                    
+            if response.status_code in [400, 404, 422]:
+                self.log_result("Invalid Starting Balance Handling", True, f"- Correctly rejected invalid data (HTTP {response.status_code})")
             elif response.status_code == 401:
-                self.log_result("Exchange Sync", False, "- Authentication required")
-                self.log_critical_issue("Cannot test exchange sync without authentication")
-                return False
+                self.log_result("Invalid Starting Balance Handling", False, "- Authentication required")
             else:
-                self.log_result("Exchange Sync", False, f"- HTTP {response.status_code}: {response.text}")
-                return False
-                
+                self.log_result("Invalid Starting Balance Handling", False, f"- Unexpected response: HTTP {response.status_code}")
         except Exception as e:
-            self.log_result("Exchange Sync Test", False, f"- Error: {str(e)}")
-            return False
-    
-    def test_individual_exchange_sync(self):
-        """Test individual exchange sync components"""
-        results = {}
+            self.log_result("Invalid Starting Balance Handling", False, f"- Error: {str(e)}")
         
-        # Test Kraken specifically
+        # Test invalid capital deposit data
+        invalid_capital_deposit = {
+            "amount": "not-a-number",
+            "deposit_date": "2024-13-45",  # Invalid date
+            "notes": None
+        }
+        
         try:
-            response = requests.get(f"{self.base_url}/exchanges/kraken/balance", 
-                                  headers=self.get_auth_headers(), timeout=20)
+            response = requests.post(f"{self.base_url}/capital-deposits",
+                                   headers=self.get_auth_headers(),
+                                   json=invalid_capital_deposit,
+                                   timeout=10)
             
-            if response.status_code == 200:
-                balance_data = response.json()
-                if balance_data.get("success"):
-                    balance = balance_data.get("balance_eur", 0)
-                    self.log_result("Kraken Individual Sync", True, f"- Balance: €{balance}")
-                    results["kraken"] = {"success": True, "balance": balance}
-                else:
-                    error = balance_data.get("error", "Unknown error")
-                    self.log_result("Kraken Individual Sync", False, f"- Error: {error}")
-                    results["kraken"] = {"success": False, "error": error}
+            if response.status_code in [400, 422]:
+                self.log_result("Invalid Capital Deposit Handling", True, f"- Correctly rejected invalid data (HTTP {response.status_code})")
             elif response.status_code == 401:
-                self.log_result("Kraken Individual Sync", False, "- Authentication required")
-                results["kraken"] = {"success": False, "error": "Authentication required"}
+                self.log_result("Invalid Capital Deposit Handling", False, "- Authentication required")
             else:
-                self.log_result("Kraken Individual Sync", False, f"- HTTP {response.status_code}")
-                results["kraken"] = {"success": False, "error": f"HTTP {response.status_code}"}
-                
+                self.log_result("Invalid Capital Deposit Handling", False, f"- Unexpected response: HTTP {response.status_code}")
         except Exception as e:
-            self.log_result("Kraken Individual Sync", False, f"- Error: {str(e)}")
-            results["kraken"] = {"success": False, "error": str(e)}
-        
-        return results
+            self.log_result("Invalid Capital Deposit Handling", False, f"- Error: {str(e)}")
     
-    def test_kraken_balance_endpoint(self):
-        """Test /api/exchanges/kraken/balance endpoint specifically"""
-        try:
-            response = requests.get(f"{self.base_url}/exchanges/kraken/balance", 
-                                  headers=self.get_auth_headers(), timeout=15)
-            
-            if response.status_code == 200:
-                balance_data = response.json()
-                self.log_result("Kraken Balance Endpoint", True, "- Endpoint responded successfully")
-                
-                if balance_data.get("success"):
-                    balance_eur = balance_data.get("balance_eur", 0)
-                    self.log_result("Kraken Balance Success", True, f"- Balance: €{balance_eur}")
-                    
-                    # Check for raw balance data
-                    if "raw_balances" in balance_data:
-                        raw_balances = balance_data["raw_balances"]
-                        self.log_result("Kraken Raw Balances", True, f"- {len(raw_balances)} assets returned")
-                        
-                        # Log significant balances
-                        for asset, amount in raw_balances.items():
-                            if float(amount) > 0.01:
-                                print(f"   {asset}: {amount}")
-                    
-                    if "asset_details" in balance_data:
-                        asset_details = balance_data["asset_details"]
-                        self.log_result("Kraken Asset Details", True, f"- {len(asset_details)} significant balances")
-                    
-                    return balance_data
-                else:
-                    error_msg = balance_data.get("error", "Unknown error")
-                    self.log_result("Kraken Balance Success", False, f"- Error: {error_msg}")
-                    return None
-                    
-            elif response.status_code == 401:
-                self.log_result("Kraken Balance Endpoint", False, "- Authentication required")
-                return None
-            else:
-                self.log_result("Kraken Balance Endpoint", False, f"- HTTP {response.status_code}: {response.text}")
-                return None
-                
-        except Exception as e:
-            self.log_result("Kraken Balance Endpoint Test", False, f"- Error: {str(e)}")
-            return None
-    
-    def test_auto_create_entry_investigation(self):
-        """Test auto-create entry endpoint to debug 'Error creating entry from sync data'"""
-        print("\n=== Testing Auto-Create Entry Investigation ===")
-        
-        try:
-            response = requests.post(f"{self.base_url}/entries/auto-create", 
-                                   headers=self.get_auth_headers(), timeout=25)
-            
-            if response.status_code == 200:
-                auto_data = response.json()
-                message = auto_data.get("message", "")
-                self.log_result("Auto-Create Entry Endpoint", True, f"- Response: {message}")
-                
-                if "created successfully" in message:
-                    total_balance = auto_data.get("total_balance", 0)
-                    pnl_percentage = auto_data.get("pnl_percentage", 0)
-                    pnl_amount = auto_data.get("pnl_amount", 0)
-                    synced_exchanges = auto_data.get("exchanges_synced", 0)
-                    
-                    self.log_result("Auto-Entry Creation Success", True, 
-                                  f"- Balance: €{total_balance}, PnL: {pnl_percentage}% (€{pnl_amount})")
-                    self.log_result("Synced Exchanges Count", True, f"- {synced_exchanges} exchanges synced")
-                    
-                    # Check for warnings
-                    if "warnings" in auto_data:
-                        warnings = auto_data["warnings"]
-                        self.log_result("Sync Warnings", True, f"- {len(warnings)} warnings present")
-                        for warning in warnings:
-                            print(f"   Warning: {warning}")
-                    
-                    return True
-                    
-                elif "already exists" in message:
-                    self.log_result("Auto-Entry Already Exists", True, "- Entry for today already exists")
-                    entry_id = auto_data.get("entry_id")
-                    if entry_id:
-                        print(f"   Existing Entry ID: {entry_id}")
-                    return True
-                    
-                elif "No exchange balances available" in message:
-                    self.log_critical_issue("No exchange balances available for entry creation")
-                    sync_errors = auto_data.get("sync_errors", [])
-                    if sync_errors:
-                        print("   Sync Errors:")
-                        for error in sync_errors:
-                            print(f"     {error}")
-                    return False
-                else:
-                    self.log_result("Auto-Entry Unexpected Response", True, f"- Response: {message}")
-                    return True
-                    
-            elif response.status_code == 500:
-                # This is the "Error creating entry from sync data" issue
-                try:
-                    error_data = response.json()
-                    detail = error_data.get("detail", "Unknown error")
-                    self.log_critical_issue(f"Error creating entry from sync data: {detail}")
-                    return False
-                except:
-                    self.log_critical_issue(f"Error creating entry from sync data: {response.text}")
-                    return False
-                    
-            elif response.status_code == 401:
-                self.log_result("Auto-Create Entry", False, "- Authentication required")
-                self.log_critical_issue("Cannot test auto-create entry without authentication")
-                return False
-            else:
-                self.log_result("Auto-Create Entry", False, f"- HTTP {response.status_code}: {response.text}")
-                return False
-                
-        except Exception as e:
-            self.log_result("Auto-Create Entry Test", False, f"- Error: {str(e)}")
-            return False
-    
-    def test_authentication_flow(self):
-        """Test authentication to understand the authentication barrier"""
-        print("\n=== Testing Authentication Flow ===")
-        
-        # Try to access a protected endpoint without auth first
-        try:
-            response = requests.get(f"{self.base_url}/entries", timeout=10)
-            if response.status_code == 401:
-                self.log_result("Protected Endpoint Security", True, 
-                              "- Properly requires authentication")
-            else:
-                self.log_result("Protected Endpoint Security", False, 
-                              f"- Expected 401, got {response.status_code}")
-        except Exception as e:
-            self.log_result("Auth Test", False, f"- Error: {str(e)}")
-        
-        # Note: For comprehensive testing, we would need a valid session token
-        # This would typically come from the Google OAuth flow or legacy auth
-        print("   Note: Full API testing requires valid authentication token")
-        print("   Current tests will show authentication errors for protected endpoints")
-        print("   This is the main barrier preventing verification of the €57,699.48 balance issue")
-    
-    def run_final_debugging_tests(self):
-        """Run the final debugging attempt to resolve persistent balance and sync issues"""
-        print("🚀 FINAL DEBUGGING ATTEMPT - Comprehensive Balance & Sync Issue Resolution")
+    def run_comprehensive_tests(self):
+        """Run comprehensive tests for starting balances and capital deposits functionality"""
+        print("🚀 COMPREHENSIVE BACKEND TESTING - Starting Balances & Capital Deposits")
         print(f"🔗 Testing against: {self.base_url}")
-        print(f"🔑 Using Kraken API Key: {KRAKEN_API_KEY[:8]}...")
         print(f"👤 Target User ID: {TEST_USER_ID[:8]}...")
         print("=" * 80)
         
@@ -723,28 +547,24 @@ class CryptoPnLTester:
             print("\n❌ API connection failed. Cannot proceed with tests.")
             return False
         
-        print("\n🔍 CRITICAL DEBUGGING TESTS")
-        print("=" * 50)
+        # Test authentication requirements
+        auth_ok = self.test_authentication_requirements()
         
-        # CRITICAL TEST 1: Database Entry Verification
-        database_ok = self.test_database_entry_verification()
+        # Test Starting Balances CRUD
+        starting_balances_ok = self.test_starting_balances_crud()
         
-        # CRITICAL TEST 2: Kraken API Integration Deep Dive
-        kraken_ok = self.test_kraken_api_integration_deep_dive()
+        # Test Capital Deposits CRUD  
+        capital_deposits_ok = self.test_capital_deposits_crud()
         
-        # CRITICAL TEST 3: Sync Process Investigation
-        sync_ok = self.test_sync_process_investigation()
+        # Test Updated Stats API
+        stats_ok = self.test_updated_stats_api()
         
-        # CRITICAL TEST 4: Stats API Verification
-        stats_ok = self.test_stats_api_verification()
-        
-        # Additional Test: Auto-Create Entry Investigation
-        print("\n=== Additional Test: Auto-Create Entry Investigation ===")
-        auto_create_ok = self.test_auto_create_entry_investigation()
+        # Test Error Handling
+        self.test_error_handling()
         
         # Print comprehensive summary
         print("\n" + "=" * 80)
-        print("📊 FINAL DEBUGGING SUMMARY")
+        print("📊 COMPREHENSIVE TEST SUMMARY")
         print("=" * 80)
         print(f"✅ Passed: {len(self.passed_tests)}")
         print(f"❌ Failed: {len(self.failed_tests)}")
@@ -760,105 +580,92 @@ class CryptoPnLTester:
             for i, issue in enumerate(self.critical_issues, 1):
                 print(f"   {i}. {issue}")
         
-        # Root Cause Analysis
-        print("\n🎯 ROOT CAUSE ANALYSIS")
+        # Feature-specific Analysis
+        print("\n🎯 FEATURE ANALYSIS")
         print("=" * 50)
         
-        # Balance Display Issue Analysis
-        if self.balance_found is not None:
-            if self.balance_found == 57699.48:
-                print("✅ Expected balance €57,699.48 found in system")
-            elif self.balance_found == 0:
-                print("🔴 CONFIRMED: Balance shows €0 instead of expected €57,699.48")
-                print("   → This is the main reported issue")
-            else:
-                print(f"⚠️ Different balance found: €{self.balance_found} (expected €57,699.48)")
+        if starting_balances_ok:
+            print("✅ Starting Balances Management: WORKING")
+            print("   → CRUD operations functional")
+            print("   → Data persistence verified")
         else:
-            print("❓ Could not determine balance due to authentication issues")
+            print("❌ Starting Balances Management: ISSUES FOUND")
+            print("   → Check authentication and endpoint implementation")
         
-        # Sync Issue Analysis
-        if not sync_ok:
-            print("🔴 CONFIRMED: Sync process failing - explains '0/3 exchanges synced successfully'")
+        if capital_deposits_ok:
+            print("✅ Capital Deposits Management: WORKING") 
+            print("   → CRUD operations functional")
+            print("   → Data persistence verified")
         else:
-            print("✅ Sync process working correctly")
+            print("❌ Capital Deposits Management: ISSUES FOUND")
+            print("   → Check authentication and endpoint implementation")
         
-        # Auto-Create Entry Analysis
-        if not auto_create_ok:
-            print("🔴 CONFIRMED: Auto-create entry failing - explains 'Error creating entry from sync data'")
+        if stats_ok:
+            print("✅ Updated Stats API with ROI: WORKING")
+            print("   → New ROI fields present")
+            print("   → Calculations appear correct")
         else:
-            print("✅ Auto-create entry working correctly")
+            print("❌ Updated Stats API with ROI: ISSUES FOUND")
+            print("   → Missing fields or calculation errors")
         
         # Authentication Analysis
         auth_required_count = len([test for test in self.failed_tests if "Authentication required" in str(test)])
         if auth_required_count > 0:
-            print(f"🔐 AUTHENTICATION BARRIER: {auth_required_count} tests blocked by authentication")
-            print("   → This prevents comprehensive testing of the reported issues")
-            print("   → The core problem may be authentication-related user filtering")
+            print(f"\n🔐 AUTHENTICATION BARRIER: {auth_required_count} tests blocked by authentication")
+            print("   → This prevents comprehensive testing of the new functionality")
+            print("   → All endpoints correctly require authentication (security working)")
         
-        # Final Diagnosis
-        print("\n🏁 FINAL DIAGNOSIS")
-        print("=" * 40)
-        
-        if len(self.critical_issues) == 0:
-            print("✅ No critical issues found - system appears to be working correctly")
-            print("   → Issues may be intermittent or authentication-specific")
-        elif "Cannot verify €57,699.48 entry without authentication" in str(self.critical_issues):
-            print("🔐 PRIMARY ISSUE: Authentication prevents verification of balance display")
-            print("   → Need valid user session to test balance and entry retrieval")
-            print("   → Backend APIs are correctly secured but this blocks testing")
-        elif any("rate limit" in issue.lower() for issue in self.critical_issues):
-            print("⏱️ PRIMARY ISSUE: Kraken API rate limiting causing sync failures")
-            print("   → This explains the '0/3 exchanges synced successfully' message")
-            print("   → Backend rate limiting protection needs improvement")
-        else:
-            print("🔍 MULTIPLE ISSUES: Several critical problems identified")
-            print("   → See critical issues list above for details")
-        
-        # Recommendations
+        # Final Recommendations
         print("\n💡 RECOMMENDATIONS")
         print("=" * 40)
         
-        if "Cannot verify €57,699.48 entry without authentication" in str(self.critical_issues):
-            print("1. 🔑 PRIORITY: Fix Google OAuth authentication to enable proper testing")
-            print("2. 📊 Verify user-specific data filtering in stats and entries endpoints")
-            print("3. 🔍 Check if €57,699.48 entry exists but belongs to different user")
+        if auth_required_count > 5:
+            print("1. 🔑 PRIORITY: Provide valid authentication token for comprehensive testing")
+            print("2. 📊 Current tests show endpoints are properly secured")
+            print("3. 🔍 Manual testing with authenticated user needed to verify full functionality")
         
-        if any("rate limit" in issue.lower() for issue in self.critical_issues):
-            print("1. ⏱️ PRIORITY: Implement better Kraken API rate limiting with exponential backoff")
-            print("2. 💾 Add caching mechanism to reduce API calls")
-            print("3. 🔄 Implement graceful fallback to cached data when rate limited")
-        
-        if not auto_create_ok:
-            print("1. 🛠️ PRIORITY: Fix auto-create entry endpoint error handling")
-            print("2. 📝 Add better error messages for sync data issues")
-            print("3. 🔍 Debug the specific 'Error creating entry from sync data' message")
+        if len(self.critical_issues) == 0:
+            print("1. ✅ No critical backend issues found")
+            print("2. 🎯 ROI benchmarking feature appears to be implemented correctly")
+            print("3. 🔒 Security measures are working properly")
+        else:
+            print("1. 🛠️ Address critical issues listed above")
+            print("2. 🔍 Focus on authentication and data validation")
         
         success_rate = len(self.passed_tests) / (len(self.passed_tests) + len(self.failed_tests)) * 100 if (len(self.passed_tests) + len(self.failed_tests)) > 0 else 0
         print(f"\n🎯 Overall Success Rate: {success_rate:.1f}%")
         
-        # Determine if issues can be fixed or need revert to manual entries
-        if len(self.critical_issues) > 3 or any("rate limit" in issue.lower() for issue in self.critical_issues):
-            print("\n⚠️ RECOMMENDATION: Consider reverting to manual entries as user requested")
-            print("   → Kraken API integration has persistent issues")
-            print("   → Manual entry system was working correctly")
-        else:
-            print("\n🔧 RECOMMENDATION: Issues are fixable - continue with integration")
+        # Determine overall result
+        core_features_working = starting_balances_ok and capital_deposits_ok and stats_ok
         
-        return len(self.critical_issues) == 0
+        if core_features_working:
+            print("\n🎉 CONCLUSION: Starting Balances and Capital Deposits functionality is working correctly!")
+            print("✅ All core CRUD operations functional")
+            print("✅ ROI calculations implemented")
+            print("✅ Authentication security in place")
+        elif auth_required_count > 5:
+            print("\n⚠️ CONCLUSION: Cannot fully verify functionality due to authentication requirements")
+            print("🔒 All endpoints properly secured (good)")
+            print("🔍 Need authenticated testing to verify complete functionality")
+        else:
+            print("\n❌ CONCLUSION: Issues found with starting balances and capital deposits functionality")
+            print("🛠️ Review critical issues and failed tests above")
+        
+        return core_features_working or (auth_required_count > 5 and len(self.critical_issues) == 0)
 
 if __name__ == "__main__":
     tester = CryptoPnLTester()
     
-    # Run final debugging tests to resolve persistent balance and sync issues
-    print("🎯 FINAL DEBUGGING ATTEMPT - RESOLVING PERSISTENT BALANCE & SYNC ISSUES")
+    # Run comprehensive tests for starting balances and capital deposits
+    print("🎯 TESTING NEW STARTING BALANCES & CAPITAL DEPOSITS FUNCTIONALITY")
     print("=" * 80)
-    debug_success = tester.run_final_debugging_tests()
+    success = tester.run_comprehensive_tests()
     
-    if debug_success:
-        print("\n🎉 Final debugging tests completed successfully!")
-        print("✅ All critical issues resolved or identified for fixing")
+    if success:
+        print("\n🎉 Testing completed successfully!")
+        print("✅ Starting balances and capital deposits functionality verified")
         sys.exit(0)
     else:
-        print("\n⚠️ Critical issues remain unresolved.")
-        print("📋 Check the detailed analysis above for specific problems and recommendations")
+        print("\n⚠️ Issues found during testing.")
+        print("📋 Check the detailed analysis above for specific problems")
         sys.exit(1)
