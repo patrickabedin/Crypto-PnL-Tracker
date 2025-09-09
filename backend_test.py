@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend API Tests for Crypto PnL Tracker
-Focus on auto-entry creation issue debugging with real Kraken API keys
+FINAL DEBUGGING ATTEMPT - Comprehensive Backend API Tests for Crypto PnL Tracker
+Focus on resolving persistent balance and sync issues:
+- Dashboard shows €0 balance instead of expected €57,699.48
+- Sync reports "0/3 exchanges synced successfully"
+- "Error creating entry from sync data" persists
 """
 
 import requests
