@@ -1179,8 +1179,8 @@ async def get_portfolio_stats(current_user: User = Depends(require_auth)):
         # Extract KPI progress from the new structure
         kpi_progress_dict = {}
         if "kpi_progress" in latest_entry and latest_entry["kpi_progress"]:
-            # Get KPI names to map progress values
-            kpis = await db.kpis.find({"is_active": True}).to_list(100)
+            # Get KPI names to map progress values for this user
+            kpis = await db.kpis.find({"user_id": current_user.id, "is_active": True}).to_list(100)
             kpi_lookup = {kpi["id"]: kpi for kpi in kpis}
             
             for kpi_prog in latest_entry["kpi_progress"]:
