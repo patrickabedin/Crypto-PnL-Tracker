@@ -29,15 +29,27 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 # Pydantic Models
-class ExchangeBalance(BaseModel):
-    kraken: float = 0.0
-    bitget: float = 0.0
-    binance: float = 0.0
+class Exchange(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    display_name: str
+    color: str = "#3B82F6"
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ExchangeCreate(BaseModel):
+    name: str
+    display_name: str
+    color: Optional[str] = "#3B82F6"
+
+class DynamicBalance(BaseModel):
+    exchange_id: str
+    amount: float
 
 class PnLEntry(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     date: date
-    balances: ExchangeBalance
+    balances: List[DynamicBalance]
     total: float = 0.0
     pnl_percentage: float = 0.0
     pnl_amount: float = 0.0
@@ -49,12 +61,12 @@ class PnLEntry(BaseModel):
 
 class PnLEntryCreate(BaseModel):
     date: date
-    balances: ExchangeBalance
+    balances: List[DynamicBalance]
     notes: Optional[str] = ""
 
 class PnLEntryUpdate(BaseModel):
     date: Optional[date] = None
-    balances: Optional[ExchangeBalance] = None
+    balances: Optional[List[DynamicBalance]] = None
     notes: Optional[str] = None
 
 # Helper functions
