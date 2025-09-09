@@ -879,7 +879,7 @@ const CryptoPnLTracker = () => {
                 Export
               </button>
               <button onClick={() => setShowAddForm(true)} className="btn-primary text-sm">
-                Add Entry
+                Manual Entry
               </button>
               <button onClick={logout} className="text-gray-500 hover:text-gray-700 text-sm">
                 Logout
