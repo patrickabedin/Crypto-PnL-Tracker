@@ -134,7 +134,7 @@ const LoginScreen = () => {
           </button>
           
           <div className="text-center text-sm text-gray-500">
-            Secure authentication powered by Emergent
+            Secure OAuth authentication
           </div>
         </div>
       </div>
