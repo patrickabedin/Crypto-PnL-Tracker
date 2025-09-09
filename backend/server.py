@@ -242,6 +242,7 @@ async def get_portfolio_stats():
             "daily_pnl": latest_entry["pnl_amount"],
             "daily_pnl_percentage": latest_entry["pnl_percentage"],
             "avg_daily_pnl": round(avg_daily_pnl, 2),
+            "avg_daily_pnl_percentage": round(avg_daily_pnl_percentage, 2),
             "kpi_progress": {
                 "5k": latest_entry["kpi_5k"],
                 "10k": latest_entry["kpi_10k"],
