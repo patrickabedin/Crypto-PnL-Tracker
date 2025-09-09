@@ -186,27 +186,43 @@ class KrakenAPI:
                     
                     balances = result.get('result', {})
                     
+                    # Debug: Log raw balances to understand the data
+                    logger.info(f"Kraken raw balances: {balances}")
+                    
                     # Convert to EUR value - focus on total balance regardless of asset type
                     total_eur = 0.0
                     asset_details = {}
                     
                     for asset, balance in balances.items():
                         balance_float = float(balance)
-                        if balance_float > 0:
+                        if balance_float > 0.01:  # Only count significant balances
                             asset_details[asset] = balance_float
                             
-                            # Convert to EUR (simplified - in production you'd use real-time prices)
+                            # More conservative EUR conversion
                             if asset in ['ZEUR', 'EUR']:
                                 total_eur += balance_float
+                                logger.info(f"EUR balance: {balance_float}")
                             elif asset in ['ZUSD', 'USD']:
-                                total_eur += balance_float * 0.92  # Approximate USD to EUR
-                            elif asset in ['BTC', 'XXBT']:
-                                total_eur += balance_float * 58000  # Approximate BTC price in EUR
+                                eur_value = balance_float * 0.92  # USD to EUR
+                                total_eur += eur_value
+                                logger.info(f"USD balance: {balance_float}, EUR value: {eur_value}")
+                            elif asset in ['BTC', 'XXBT', 'XBT']:
+                                # Use more reasonable BTC price - around €40k not €58k
+                                eur_value = balance_float * 40000
+                                total_eur += eur_value
+                                logger.info(f"BTC balance: {balance_float}, EUR value: {eur_value}")
                             elif asset in ['ETH', 'XETH']:
-                                total_eur += balance_float * 2400   # Approximate ETH price in EUR
+                                # Use more reasonable ETH price - around €2200
+                                eur_value = balance_float * 2200
+                                total_eur += eur_value
+                                logger.info(f"ETH balance: {balance_float}, EUR value: {eur_value}")
                             else:
-                                # For other assets, use a conservative estimate
-                                total_eur += balance_float * 1.0
+                                # For unknown assets, use very conservative estimate
+                                eur_value = balance_float * 0.1  # Very conservative
+                                total_eur += eur_value
+                                logger.info(f"Unknown asset {asset}: {balance_float}, conservative EUR value: {eur_value}")
+                    
+                    logger.info(f"Total EUR calculated: {total_eur}")
                     
                     # Update last used timestamp
                     if user_id:
