@@ -1808,12 +1808,20 @@ const CryptoPnLTracker = () => {
                             {deposit.notes && ` • ${deposit.notes}`}
                           </p>
                         </div>
-                        <button
-                          onClick={() => handleDeleteCapitalDeposit(deposit.id)}
-                          className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => startEditingCapitalDeposit(deposit)}
+                            className="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 rounded border border-blue-200 hover:bg-blue-50"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCapitalDeposit(deposit.id)}
+                            className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     ))}
                     
