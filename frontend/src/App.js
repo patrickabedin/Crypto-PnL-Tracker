@@ -1034,8 +1034,8 @@ const CryptoPnLTracker = () => {
                 <p className={`text-lg md:text-xl font-bold ${stats.roi_vs_starting_balance > 0 ? 'text-amber-600' : stats.roi_vs_starting_balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
                   {stats.roi_vs_starting_balance > 0 ? '+' : ''}{(stats.roi_vs_starting_balance || 0).toFixed(2)}%
                 </p>
-                <p className="text-xs text-amber-600">
-                  {formatCurrency((stats.total_balance || 0) - (stats.total_starting_balance || 0))} gain
+                <p className={`text-xs ${stats.roi_vs_starting_balance > 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {formatCurrency(Math.abs((stats.total_balance || 0) - (stats.total_starting_balance || 0)))} {stats.roi_vs_starting_balance >= 0 ? 'gain' : 'loss'}
                 </p>
               </div>
             )}
