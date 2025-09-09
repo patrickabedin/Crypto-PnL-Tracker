@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Backend API Tests for Crypto PnL Tracker
-Focus on critical issues: Balance display, API key management, Kraken integration, Stats API
+Focus on auto-entry creation issue debugging with real Kraken API keys
 """
 
 import requests
@@ -9,6 +9,10 @@ import json
 from datetime import date, datetime, timedelta
 import time
 import sys
+import base64
+import hmac
+import hashlib
+import urllib.parse
 
 # Backend URL from frontend/.env
 BACKEND_URL = "https://crypto-profit-dash-1.preview.emergentagent.com/api"
@@ -16,6 +20,10 @@ BACKEND_URL = "https://crypto-profit-dash-1.preview.emergentagent.com/api"
 # Test user credentials from review request
 TEST_USER_ID = "6888e839-1191-4880-ac8d-1fab8c19ea4c"
 TEST_USER_EMAIL = "abedin33@gmail.com"
+
+# Kraken API Keys from review request
+KRAKEN_API_KEY = "fFeuud7v9ZMpUgKDrvJg9qzmMYiG+T16fc4sHKWnGSAvZgSJsLVWXzcj"
+KRAKEN_PRIVATE_KEY = "g/j/j1aK781xg5YyanJZH3uYPonVFwU6eiMd2mrpVS1oc8rUAgXvKf0Qc9C8I1how0WhhREZlPNpQwenVD+5IQ=="
 
 class CryptoPnLTester:
     def __init__(self):
