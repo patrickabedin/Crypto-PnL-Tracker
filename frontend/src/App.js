@@ -1038,7 +1038,7 @@ const CryptoPnLTracker = () => {
         </div>
       )}
 
-      {/* Exchange Management Modal - Mobile Optimized */}
+      {/* Exchange management */}
       {showExchangeManager && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end md:items-center justify-center z-50 p-4 md:p-4">
           <div className="bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full md:max-w-2xl md:w-full max-h-[90vh] overflow-y-auto">
