@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Backend API Tests for Crypto PnL Tracker
-Tests all CRUD operations, calculations, and edge cases
+Focus on critical issues: Balance display, API key management, Kraken integration, Stats API
 """
 
 import requests
@@ -12,6 +12,10 @@ import sys
 
 # Backend URL from frontend/.env
 BACKEND_URL = "https://crypto-profit-dash-1.preview.emergentagent.com/api"
+
+# Test user credentials from review request
+TEST_USER_ID = "6888e839-1191-4880-ac8d-1fab8c19ea4c"
+TEST_USER_EMAIL = "abedin33@gmail.com"
 
 class CryptoPnLTester:
     def __init__(self):
