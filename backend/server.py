@@ -1331,8 +1331,22 @@ async def get_capital_deposits(current_user: User = Depends(require_auth)):
         deposits = await db.capital_deposits.find({
             "user_id": current_user.id
         }).sort("deposit_date", -1).to_list(length=None)
-        return deposits
+        
+        # Convert to proper format, removing MongoDB ObjectId
+        result = []
+        for deposit in deposits:
+            result.append({
+                "id": deposit.get("id", str(deposit.get("_id", ""))),
+                "user_id": deposit.get("user_id"),
+                "amount": deposit.get("amount"),
+                "deposit_date": deposit.get("deposit_date"),
+                "notes": deposit.get("notes", ""),
+                "created_at": deposit.get("created_at")
+            })
+        
+        return result
     except Exception as e:
+        logger.error(f"Error getting capital deposits: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/capital-deposits")
