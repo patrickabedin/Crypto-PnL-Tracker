@@ -91,16 +91,34 @@ const AuthProvider = ({ children }) => {
   // Handle Google OAuth callback
   const handleGoogleCallback = async (response) => {
     try {
+      console.log('Google OAuth response:', response);
+      
+      if (!response.credential) {
+        throw new Error('No credential received from Google');
+      }
+
       setLoading(true);
       
       // Send Google token to our backend
       const backendResponse = await axios.post(`${API}/auth/google`, {
         token: response.credential
-      }, { withCredentials: true });
+      }, { 
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
-      setUser(backendResponse.data.user);
+      if (backendResponse.data.success) {
+        console.log('Authentication successful');
+        setUser(backendResponse.data.user);
+      } else {
+        throw new Error(backendResponse.data.message || 'Authentication failed');
+      }
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.error('Google OAuth error:', error);
+      // You might want to show this error to the user in a more user-friendly way
+      alert(`Login failed: ${error.response?.data?.detail || error.message}`);
     } finally {
       setLoading(false);
     }
