@@ -292,6 +292,10 @@ const CryptoPnLTracker = () => {
     return saved ? JSON.parse(saved) : false;
   });
 
+  // Performance Heatmap State
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [heatmapData, setHeatmapData] = useState([]);
+
 
   // Configure axios defaults
   axios.defaults.withCredentials = true;
