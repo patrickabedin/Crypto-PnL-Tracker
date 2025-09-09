@@ -859,11 +859,32 @@ async def get_portfolio_stats(current_user: User = Depends(require_auth)):
                 "avg_daily_pnl": 0,
                 "avg_daily_pnl_percentage": 0,
                 "avg_monthly_pnl_percentage": 0,
-                "kpi_progress": {"5k": 0, "10k": 0, "15k": 0}
+                "kpi_progress": {"5k": 0, "10k": 0, "15k": 0},
+                "total_capital_deposited": 0,
+                "total_starting_balance": 0,
+                "roi_vs_capital": 0,
+                "roi_vs_starting_balance": 0
             }
         
         # Get total entries count for this user
         total_entries = await db.pnl_entries.count_documents({"user_id": current_user.id})
+        
+        # Calculate total capital deposited
+        capital_deposits = await db.capital_deposits.find({
+            "user_id": current_user.id
+        }).to_list(length=None)
+        total_capital_deposited = sum(deposit["amount"] for deposit in capital_deposits)
+        
+        # Calculate total starting balance across all exchanges
+        starting_balances = await db.exchange_starting_balances.find({
+            "user_id": current_user.id
+        }).to_list(length=None)
+        total_starting_balance = sum(balance["starting_balance"] for balance in starting_balances)
+        
+        # Calculate ROI vs capital and starting balance
+        current_total = latest_entry["total"]
+        roi_vs_capital = ((current_total - total_capital_deposited) / total_capital_deposited * 100) if total_capital_deposited > 0 else 0
+        roi_vs_starting_balance = ((current_total - total_starting_balance) / total_starting_balance * 100) if total_starting_balance > 0 else 0
         
         # Calculate average daily PnL (amount and percentage) for this user
         pipeline_amount = [
@@ -935,7 +956,11 @@ async def get_portfolio_stats(current_user: User = Depends(require_auth)):
             "avg_daily_pnl": round(avg_daily_pnl, 2),
             "avg_daily_pnl_percentage": round(avg_daily_pnl_percentage, 2),
             "avg_monthly_pnl_percentage": round(avg_monthly_pnl_percentage, 2),
-            "kpi_progress": kpi_progress_dict
+            "kpi_progress": kpi_progress_dict,
+            "total_capital_deposited": round(total_capital_deposited, 2),
+            "total_starting_balance": round(total_starting_balance, 2),
+            "roi_vs_capital": round(roi_vs_capital, 2),
+            "roi_vs_starting_balance": round(roi_vs_starting_balance, 2)
         }
         
     except Exception as e:
