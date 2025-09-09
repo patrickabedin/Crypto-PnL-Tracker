@@ -296,6 +296,10 @@ const CryptoPnLTracker = () => {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [heatmapData, setHeatmapData] = useState([]);
 
+  // Smart Alerts State
+  const [smartAlerts, setSmartAlerts] = useState([]);
+  const [showAlerts, setShowAlerts] = useState(false);
+
 
   // Configure axios defaults
   axios.defaults.withCredentials = true;
