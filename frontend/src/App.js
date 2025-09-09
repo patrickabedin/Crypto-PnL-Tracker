@@ -629,6 +629,9 @@ const CryptoPnLTracker = () => {
                   <button onClick={() => { setShowCharts(!showCharts); setShowMobileMenu(false); }} className="btn-secondary text-xs py-2">
                     Charts
                   </button>
+                  <button onClick={() => { setShowKPIManager(true); setShowMobileMenu(false); }} className="btn-secondary text-xs py-2">
+                    KPIs
+                  </button>
                   <button onClick={() => { setShowExchangeManager(true); setShowMobileMenu(false); }} className="btn-secondary text-xs py-2">
                     Exchanges
                   </button>
