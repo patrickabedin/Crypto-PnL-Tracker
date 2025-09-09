@@ -505,6 +505,28 @@ const CryptoPnLTracker = () => {
     }
   };
 
+  // Dark Mode Functions
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
+    // Apply dark mode class to document
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  // Apply dark mode on component mount
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
   // Load starting balances and capital deposits when Settings modal opens
   useEffect(() => {
     if (showSettingsManager) {
