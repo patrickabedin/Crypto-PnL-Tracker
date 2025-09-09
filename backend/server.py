@@ -262,18 +262,24 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 # Exchange Management Endpoints
 @api_router.get("/exchanges", response_model=List[Exchange])
-async def get_exchanges():
+async def get_exchanges(current_user: User = Depends(require_auth)):
     try:
-        exchanges = await db.exchanges.find({"is_active": True}).sort("name", 1).to_list(100)
+        exchanges = await db.exchanges.find({
+            "user_id": current_user.id,
+            "is_active": True
+        }).sort("name", 1).to_list(100)
         return [Exchange(**exchange) for exchange in exchanges]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/exchanges", response_model=Exchange)
-async def create_exchange(exchange_data: ExchangeCreate):
+async def create_exchange(exchange_data: ExchangeCreate, current_user: User = Depends(require_auth)):
     try:
-        # Check if exchange name already exists
-        existing = await db.exchanges.find_one({"name": exchange_data.name.lower()})
+        # Check if exchange name already exists for this user
+        existing = await db.exchanges.find_one({
+            "user_id": current_user.id,
+            "name": exchange_data.name.lower()
+        })
         if existing:
             raise HTTPException(status_code=400, detail="Exchange name already exists")
         
@@ -283,7 +289,11 @@ async def create_exchange(exchange_data: ExchangeCreate):
             color=exchange_data.color
         )
         
-        await db.exchanges.insert_one(exchange.dict())
+        # Add user_id to exchange
+        exchange_dict = exchange.dict()
+        exchange_dict["user_id"] = current_user.id
+        
+        await db.exchanges.insert_one(exchange_dict)
         return exchange
     except HTTPException:
         raise
@@ -291,23 +301,35 @@ async def create_exchange(exchange_data: ExchangeCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.delete("/exchanges/{exchange_id}")
-async def delete_exchange(exchange_id: str):
+async def delete_exchange(exchange_id: str, current_user: User = Depends(require_auth)):
     try:
+        # Check if exchange belongs to user
+        exchange = await db.exchanges.find_one({
+            "id": exchange_id,
+            "user_id": current_user.id
+        })
+        if not exchange:
+            raise HTTPException(status_code=404, detail="Exchange not found")
+        
         # Check if exchange is used in any entries
         entries_with_exchange = await db.pnl_entries.find_one({
+            "user_id": current_user.id,
             "balances.exchange_id": exchange_id
         })
         
         if entries_with_exchange:
             # Just deactivate instead of deleting
             await db.exchanges.update_one(
-                {"id": exchange_id},
+                {"id": exchange_id, "user_id": current_user.id},
                 {"$set": {"is_active": False}}
             )
             return {"message": "Exchange deactivated (used in historical entries)"}
         else:
             # Safe to delete
-            result = await db.exchanges.delete_one({"id": exchange_id})
+            result = await db.exchanges.delete_one({
+                "id": exchange_id,
+                "user_id": current_user.id
+            })
             if result.deleted_count == 0:
                 raise HTTPException(status_code=404, detail="Exchange not found")
             return {"message": "Exchange deleted successfully"}
@@ -318,10 +340,10 @@ async def delete_exchange(exchange_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/initialize-default-exchanges")
-async def initialize_default_exchanges():
-    """Initialize default exchanges if none exist"""
+async def initialize_default_exchanges(current_user: User = Depends(require_auth)):
+    """Initialize default exchanges if none exist for this user"""
     try:
-        count = await db.exchanges.count_documents({})
+        count = await db.exchanges.count_documents({"user_id": current_user.id})
         if count == 0:
             default_exchanges = [
                 {"name": "kraken", "display_name": "Kraken", "color": "#16A34A"},
@@ -331,7 +353,9 @@ async def initialize_default_exchanges():
             
             for ex_data in default_exchanges:
                 exchange = Exchange(**ex_data)
-                await db.exchanges.insert_one(exchange.dict())
+                exchange_dict = exchange.dict()
+                exchange_dict["user_id"] = current_user.id
+                await db.exchanges.insert_one(exchange_dict)
             
             return {"message": "Default exchanges initialized"}
         else:
