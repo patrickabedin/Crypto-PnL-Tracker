@@ -1173,6 +1173,34 @@ async def get_portfolio_stats():
         monthly_result = await db.pnl_entries.aggregate(monthly_pipeline).to_list(1)
         avg_monthly_pnl_percentage = monthly_result[0]["avg_monthly_pnl"] if monthly_result else 0
         
+        # Extract KPI progress from the new structure
+        kpi_progress_dict = {}
+        if "kpi_progress" in latest_entry and latest_entry["kpi_progress"]:
+            # Get KPI names to map progress values
+            kpis = await db.kpis.find({"is_active": True}).to_list(100)
+            kpi_lookup = {kpi["id"]: kpi for kpi in kpis}
+            
+            for kpi_prog in latest_entry["kpi_progress"]:
+                kpi_id = kpi_prog["kpi_id"]
+                if kpi_id in kpi_lookup:
+                    kpi = kpi_lookup[kpi_id]
+                    target = kpi["target_amount"]
+                    if target == 5000:
+                        kpi_progress_dict["5k"] = kpi_prog["progress"]
+                    elif target == 10000:
+                        kpi_progress_dict["10k"] = kpi_prog["progress"]
+                    elif target == 15000:
+                        kpi_progress_dict["15k"] = kpi_prog["progress"]
+        
+        # Fallback to default values if no KPI progress found
+        if not kpi_progress_dict:
+            total = latest_entry["total"]
+            kpi_progress_dict = {
+                "5k": total - 5000,
+                "10k": total - 10000,
+                "15k": total - 15000
+            }
+
         return {
             "total_entries": total_entries,
             "total_balance": latest_entry["total"],
@@ -1181,11 +1209,7 @@ async def get_portfolio_stats():
             "avg_daily_pnl": round(avg_daily_pnl, 2),
             "avg_daily_pnl_percentage": round(avg_daily_pnl_percentage, 2),
             "avg_monthly_pnl_percentage": round(avg_monthly_pnl_percentage, 2),
-            "kpi_progress": {
-                "5k": latest_entry["kpi_5k"],
-                "10k": latest_entry["kpi_10k"],
-                "15k": latest_entry["kpi_15k"]
-            }
+            "kpi_progress": kpi_progress_dict
         }
         
     except Exception as e:
