@@ -187,11 +187,26 @@ const CryptoPnLTracker = () => {
     }).format(amount);
   };
 
-  // Get PnL color class
-  const getPnLColor = (value) => {
-    if (value > 0) return 'text-green-600 bg-green-50';
-    if (value < 0) return 'text-red-600 bg-red-50';
-    return 'text-gray-600 bg-gray-50';
+  // Export to CSV
+  const handleExportCSV = async () => {
+    try {
+      const response = await axios.get(`${API}/export/csv`, {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'crypto_pnl_data.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert('Error exporting data. Please try again.');
+    }
   };
 
   if (loading) {
