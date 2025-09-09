@@ -50,12 +50,14 @@ const CryptoPnLTracker = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [entriesRes, statsRes] = await Promise.all([
+      const [entriesRes, statsRes, chartRes] = await Promise.all([
         axios.get(`${API}/entries`),
-        axios.get(`${API}/stats`)
+        axios.get(`${API}/stats`),
+        axios.get(`${API}/chart-data`)
       ]);
       setEntries(entriesRes.data);
       setStats(statsRes.data);
+      setChartData(chartRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
