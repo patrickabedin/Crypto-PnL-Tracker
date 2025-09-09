@@ -847,14 +847,14 @@ class CryptoPnLTester:
 if __name__ == "__main__":
     tester = CryptoPnLTester()
     
-    # Run critical issue tests
-    print("🎯 RUNNING CRITICAL ISSUE TESTS")
-    print("=" * 50)
-    critical_success = tester.run_critical_issue_tests()
+    # Run auto-entry creation debug tests
+    print("🎯 RUNNING AUTO-ENTRY CREATION DEBUG TESTS")
+    print("=" * 60)
+    debug_success = tester.run_auto_entry_debug_tests()
     
-    if critical_success:
-        print("\n🎉 Critical issue tests completed successfully!")
+    if debug_success:
+        print("\n🎉 Auto-entry creation debug tests completed successfully!")
         sys.exit(0)
     else:
-        print("\n⚠️ Some critical issue tests failed. Check the output above for details.")
+        print("\n⚠️ Some auto-entry creation tests failed. Check the output above for details.")
         sys.exit(1)
