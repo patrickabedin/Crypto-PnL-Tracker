@@ -730,6 +730,185 @@ async def create_pnl_entry(entry_data: PnLEntryCreate, current_user: User = Depe
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Real-Time Exchange Integration Endpoints
+@api_router.get("/exchanges/kraken/balance")
+async def get_kraken_balance(current_user: User = Depends(require_auth)):
+    """Get real-time balance from Kraken"""
+    try:
+        balance_data = await kraken_api.get_account_balance()
+        return balance_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/exchanges/sync")
+async def sync_exchange_balances(current_user: User = Depends(require_auth), background_tasks: BackgroundTasks = None):
+    """Sync balances from all connected exchanges"""
+    try:
+        # Get current exchanges for this user
+        exchanges = await db.exchanges.find({
+            "user_id": current_user.id,
+            "is_active": True
+        }).to_list(100)
+        
+        sync_results = {}
+        total_balance = 0.0
+        balances = []
+        
+        # Sync each exchange
+        for exchange in exchanges:
+            if exchange["name"] == "kraken":
+                balance_data = await kraken_api.get_account_balance()
+                if balance_data['success']:
+                    sync_results['kraken'] = {
+                        'success': True,
+                        'balance': balance_data['balance_eur'],
+                        'last_updated': balance_data['last_updated']
+                    }
+                    total_balance += balance_data['balance_eur']
+                    balances.append({
+                        'exchange_id': exchange['id'],
+                        'amount': balance_data['balance_eur']
+                    })
+                else:
+                    sync_results['kraken'] = {
+                        'success': False,
+                        'error': balance_data.get('error', 'Unknown error')
+                    }
+            
+            # TODO: Add Binance and Bitget when you provide their APIs
+            elif exchange["name"] == "binance":
+                sync_results['binance'] = {'success': False, 'error': 'API not configured yet'}
+            elif exchange["name"] == "bitget":
+                sync_results['bitget'] = {'success': False, 'error': 'API not configured yet'}
+        
+        return {
+            'sync_results': sync_results,
+            'suggested_entry': {
+                'date': datetime.utcnow().date().isoformat(),
+                'balances': balances,
+                'total': round(total_balance, 2),
+                'notes': f"Auto-synced at {datetime.utcnow().strftime('%H:%M UTC')}"
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/entries/auto-create")
+async def auto_create_entry_from_sync(
+    current_user: User = Depends(require_auth),
+    auto_sync: bool = True
+):
+    """Automatically create today's entry from real-time exchange data"""
+    try:
+        # First sync the balances
+        exchanges = await db.exchanges.find({
+            "user_id": current_user.id,
+            "is_active": True
+        }).to_list(100)
+        
+        balances = []
+        total_balance = 0.0
+        
+        # Get real-time data from each exchange
+        for exchange in exchanges:
+            if exchange["name"] == "kraken":
+                balance_data = await kraken_api.get_account_balance()
+                if balance_data['success']:
+                    balances.append({
+                        'exchange_id': exchange['id'],
+                        'amount': balance_data['balance_eur']
+                    })
+                    total_balance += balance_data['balance_eur']
+        
+        if not balances:
+            raise HTTPException(status_code=400, detail="No exchange balances available")
+        
+        # Check if entry for today already exists
+        today = datetime.utcnow().date()
+        existing_entry = await db.pnl_entries.find_one({
+            "user_id": current_user.id,
+            "date": today.isoformat()
+        })
+        
+        if existing_entry:
+            return {
+                "message": "Entry for today already exists",
+                "existing_entry": existing_entry,
+                "suggested_balances": balances
+            }
+        
+        # Create entry data
+        entry_data = PnLEntryCreate(
+            date=today,
+            balances=[DynamicBalance(**balance) for balance in balances],
+            notes=f"Auto-created from real-time sync at {datetime.utcnow().strftime('%H:%M UTC')}"
+        )
+        
+        # Use existing create_pnl_entry logic
+        created_entry = await create_pnl_entry_internal(entry_data, current_user)
+        
+        return {
+            "message": "Entry created successfully from real-time data",
+            "entry": created_entry,
+            "total_balance": round(total_balance, 2),
+            "synced_exchanges": len(balances)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Internal function for creating entries (extracted from the main endpoint)
+async def create_pnl_entry_internal(entry_data: PnLEntryCreate, current_user: User):
+    """Internal function to create PnL entry"""
+    # Calculate total from dynamic balances
+    total = sum(balance.amount for balance in entry_data.balances)
+    
+    # Get previous entry for PnL calculation
+    previous_entry = await db.pnl_entries.find_one(
+        {
+            "user_id": current_user.id,
+            "date": {"$lt": entry_data.date.isoformat()}
+        }, 
+        sort=[("date", -1)]
+    )
+    
+    previous_total = previous_entry["total"] if previous_entry else total
+    
+    # Get user's KPIs
+    user_kpis = await db.kpis.find({
+        "user_id": current_user.id,
+        "is_active": True
+    }).to_list(100)
+    
+    # Calculate metrics
+    pnl_metrics = calculate_pnl_metrics(total, previous_total)
+    kpi_progress = calculate_kpi_progress(total, user_kpis)
+    
+    # Create entry
+    entry = PnLEntry(
+        date=entry_data.date,
+        balances=entry_data.balances,
+        total=round(total, 2),
+        pnl_percentage=pnl_metrics["pnl_percentage"],
+        pnl_amount=pnl_metrics["pnl_amount"],
+        kpi_progress=[DynamicKPI(**kpi) for kpi in kpi_progress],
+        notes=entry_data.notes
+    )
+    
+    # Insert into database
+    entry_dict = entry.dict()
+    entry_dict["date"] = entry_dict["date"].isoformat()
+    entry_dict["balances"] = [balance.dict() for balance in entry.balances]
+    entry_dict["kpi_progress"] = [kpi.dict() for kpi in entry.kpi_progress]
+    entry_dict["user_id"] = current_user.id
+    await db.pnl_entries.insert_one(entry_dict)
+    
+    # Recalculate PnL for subsequent entries
+    await recalculate_subsequent_entries(entry_data.date, current_user.id)
+    
+    return entry
+
 @api_router.get("/entries", response_model=List[PnLEntry])
 async def get_pnl_entries(current_user: User = Depends(require_auth), limit: int = 100):
     try:
