@@ -597,6 +597,9 @@ const CryptoPnLTracker = () => {
               <button onClick={() => setShowCharts(!showCharts)} className="btn-secondary text-sm">
                 {showCharts ? 'Hide Charts' : 'Charts'}
               </button>
+              <button onClick={() => setShowKPIManager(true)} className="btn-secondary text-sm">
+                KPIs
+              </button>
               <button onClick={() => setShowExchangeManager(true)} className="btn-secondary text-sm">
                 Exchanges
               </button>
