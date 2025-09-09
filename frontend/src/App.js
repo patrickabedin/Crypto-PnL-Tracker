@@ -347,6 +347,95 @@ const CryptoPnLTracker = () => {
     }
   }, [user]);
 
+  // Starting Balance & Capital Deposits Functions
+  const loadStartingBalances = async () => {
+    try {
+      const response = await axios.get(`${API}/starting-balances`);
+      setStartingBalances(response.data);
+    } catch (error) {
+      console.error('Error loading starting balances:', error);
+      setStartingBalances([]);
+    }
+  };
+
+  const loadCapitalDeposits = async () => {
+    try {
+      const response = await axios.get(`${API}/capital-deposits`);
+      setCapitalDeposits(response.data);
+    } catch (error) {
+      console.error('Error loading capital deposits:', error);
+      setCapitalDeposits([]);
+    }
+  };
+
+  const handleAddStartingBalance = async (e) => {
+    e.preventDefault();
+    if (!newStartingBalance.exchange_id || !newStartingBalance.starting_balance || !newStartingBalance.starting_date) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    try {
+      await axios.post(`${API}/starting-balances`, {
+        ...newStartingBalance,
+        starting_balance: parseFloat(newStartingBalance.starting_balance)
+      });
+      await loadStartingBalances();
+      setNewStartingBalance({ exchange_id: '', starting_balance: '', starting_date: '' });
+      alert('Starting balance set successfully!');
+    } catch (error) {
+      console.error('Error adding starting balance:', error);
+      alert('Error setting starting balance: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
+  const handleDeleteStartingBalance = async (exchangeId) => {
+    if (!confirm('Are you sure you want to delete this starting balance?')) return;
+
+    try {
+      await axios.delete(`${API}/starting-balances/${exchangeId}`);
+      await loadStartingBalances();
+      alert('Starting balance deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting starting balance:', error);
+      alert('Error deleting starting balance: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
+  const handleAddCapitalDeposit = async (e) => {
+    e.preventDefault();
+    if (!newCapitalDeposit.amount || !newCapitalDeposit.deposit_date) {
+      alert('Please fill in amount and date');
+      return;
+    }
+
+    try {
+      await axios.post(`${API}/capital-deposits`, {
+        ...newCapitalDeposit,
+        amount: parseFloat(newCapitalDeposit.amount)
+      });
+      await loadCapitalDeposits();
+      setNewCapitalDeposit({ amount: '', deposit_date: '', notes: '' });
+      alert('Capital deposit added successfully!');
+    } catch (error) {
+      console.error('Error adding capital deposit:', error);
+      alert('Error adding capital deposit: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
+  const handleDeleteCapitalDeposit = async (depositId) => {
+    if (!confirm('Are you sure you want to delete this capital deposit?')) return;
+
+    try {
+      await axios.delete(`${API}/capital-deposits/${depositId}`);
+      await loadCapitalDeposits();
+      alert('Capital deposit deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting capital deposit:', error);
+      alert('Error deleting capital deposit: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
