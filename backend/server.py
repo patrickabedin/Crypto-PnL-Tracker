@@ -1354,6 +1354,85 @@ async def get_chart_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Exchange API Key Management
+@api_router.get("/exchange-api-keys")
+async def get_user_api_keys(current_user: User = Depends(require_auth)):
+    """Get user's exchange API keys (returns only metadata, not the actual keys)"""
+    try:
+        api_keys = await db.exchange_api_keys.find({
+            "user_id": current_user.id,
+            "is_active": True
+        }).to_list(100)
+        
+        # Return only safe metadata
+        safe_keys = []
+        for key in api_keys:
+            safe_keys.append({
+                "id": key["id"],
+                "exchange_name": key["exchange_name"],
+                "api_key_preview": key["api_key"][:8] + "..." if key["api_key"] else "Not set",
+                "created_at": key["created_at"],
+                "last_used": key.get("last_used"),
+                "is_active": key["is_active"]
+            })
+        
+        return safe_keys
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/exchange-api-keys")
+async def add_exchange_api_key(api_key_data: ExchangeAPIKeyCreate, current_user: User = Depends(require_auth)):
+    """Add or update exchange API key for user"""
+    try:
+        # Check if API key already exists for this exchange
+        existing = await db.exchange_api_keys.find_one({
+            "user_id": current_user.id,
+            "exchange_name": api_key_data.exchange_name
+        })
+        
+        if existing:
+            # Update existing
+            await db.exchange_api_keys.update_one(
+                {"id": existing["id"]},
+                {"$set": {
+                    "api_key": api_key_data.api_key,
+                    "api_secret": api_key_data.api_secret,
+                    "is_active": True,
+                    "created_at": datetime.utcnow()
+                }}
+            )
+            return {"message": f"{api_key_data.exchange_name} API key updated successfully"}
+        else:
+            # Create new
+            api_key = ExchangeAPIKey(
+                user_id=current_user.id,
+                exchange_name=api_key_data.exchange_name,
+                api_key=api_key_data.api_key,
+                api_secret=api_key_data.api_secret
+            )
+            
+            await db.exchange_api_keys.insert_one(api_key.dict())
+            return {"message": f"{api_key_data.exchange_name} API key added successfully"}
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/exchange-api-keys/{exchange_name}")
+async def delete_exchange_api_key(exchange_name: str, current_user: User = Depends(require_auth)):
+    """Delete exchange API key"""
+    try:
+        result = await db.exchange_api_keys.update_one(
+            {"user_id": current_user.id, "exchange_name": exchange_name},
+            {"$set": {"is_active": False}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="API key not found")
+        
+        return {"message": f"{exchange_name} API key removed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 async def recalculate_all_entries(user_id: str):
     """Recalculate all entries for a specific user (used when KPIs change)"""
     try:
