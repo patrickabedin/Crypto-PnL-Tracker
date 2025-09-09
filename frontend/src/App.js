@@ -355,7 +355,7 @@ const CryptoPnLTracker = () => {
 
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Balance</h3>
             <p className="mt-2 text-3xl font-bold text-gray-900">{formatCurrency(stats.total_balance || 0)}</p>
@@ -370,9 +370,15 @@ const CryptoPnLTracker = () => {
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Avg Daily PnL</h3>
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Avg Daily PnL €</h3>
             <p className={`mt-2 text-3xl font-bold ${stats.avg_daily_pnl > 0 ? 'text-green-600' : stats.avg_daily_pnl < 0 ? 'text-red-600' : 'text-gray-900'}`}>
               {formatCurrency(stats.avg_daily_pnl || 0)}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Avg Daily PnL %</h3>
+            <p className={`mt-2 text-3xl font-bold ${stats.avg_daily_pnl_percentage > 0 ? 'text-green-600' : stats.avg_daily_pnl_percentage < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+              {stats.avg_daily_pnl_percentage > 0 ? '+' : ''}{(stats.avg_daily_pnl_percentage || 0).toFixed(2)}%
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
