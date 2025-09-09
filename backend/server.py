@@ -248,6 +248,7 @@ async def authenticate_with_google(request: Request, response: Response):
         )
         
         return {
+            "success": True,
             "user": user.dict(),
             "session_token": session_token,
             "expires_at": expires_at.isoformat()
