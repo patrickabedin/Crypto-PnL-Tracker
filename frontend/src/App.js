@@ -150,11 +150,13 @@ const CryptoPnLTracker = () => {
   const [chartData, setChartData] = useState({});
   const [monthlyPerformance, setMonthlyPerformance] = useState({});
   const [exchanges, setExchanges] = useState([]);
+  const [kpis, setKPIs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
   const [showMonthlyView, setShowMonthlyView] = useState(false);
   const [showExchangeManager, setShowExchangeManager] = useState(false);
+  const [showKPIManager, setShowKPIManager] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [formData, setFormData] = useState({
@@ -167,6 +169,12 @@ const CryptoPnLTracker = () => {
     display_name: '',
     color: '#3B82F6'
   });
+  const [newKPI, setNewKPI] = useState({
+    name: '',
+    target_amount: '',
+    color: '#10B981'
+  });
+  const [editingKPI, setEditingKPI] = useState(null);
 
   // Configure axios defaults
   axios.defaults.withCredentials = true;
