@@ -96,6 +96,85 @@ def calculate_kpi_progress(current_total: float) -> Dict[str, float]:
 async def root():
     return {"message": "Crypto PnL Tracker API"}
 
+# Exchange Management Endpoints
+@api_router.get("/exchanges", response_model=List[Exchange])
+async def get_exchanges():
+    try:
+        exchanges = await db.exchanges.find({"is_active": True}).sort("name", 1).to_list(100)
+        return [Exchange(**exchange) for exchange in exchanges]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/exchanges", response_model=Exchange)
+async def create_exchange(exchange_data: ExchangeCreate):
+    try:
+        # Check if exchange name already exists
+        existing = await db.exchanges.find_one({"name": exchange_data.name.lower()})
+        if existing:
+            raise HTTPException(status_code=400, detail="Exchange name already exists")
+        
+        exchange = Exchange(
+            name=exchange_data.name.lower(),
+            display_name=exchange_data.display_name,
+            color=exchange_data.color
+        )
+        
+        await db.exchanges.insert_one(exchange.dict())
+        return exchange
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/exchanges/{exchange_id}")
+async def delete_exchange(exchange_id: str):
+    try:
+        # Check if exchange is used in any entries
+        entries_with_exchange = await db.pnl_entries.find_one({
+            "balances.exchange_id": exchange_id
+        })
+        
+        if entries_with_exchange:
+            # Just deactivate instead of deleting
+            await db.exchanges.update_one(
+                {"id": exchange_id},
+                {"$set": {"is_active": False}}
+            )
+            return {"message": "Exchange deactivated (used in historical entries)"}
+        else:
+            # Safe to delete
+            result = await db.exchanges.delete_one({"id": exchange_id})
+            if result.deleted_count == 0:
+                raise HTTPException(status_code=404, detail="Exchange not found")
+            return {"message": "Exchange deleted successfully"}
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/initialize-default-exchanges")
+async def initialize_default_exchanges():
+    """Initialize default exchanges if none exist"""
+    try:
+        count = await db.exchanges.count_documents({})
+        if count == 0:
+            default_exchanges = [
+                {"name": "kraken", "display_name": "Kraken", "color": "#16A34A"},
+                {"name": "bitget", "display_name": "Bitget", "color": "#F59E0B"},
+                {"name": "binance", "display_name": "Binance", "color": "#EF4444"}
+            ]
+            
+            for ex_data in default_exchanges:
+                exchange = Exchange(**ex_data)
+                await db.exchanges.insert_one(exchange.dict())
+            
+            return {"message": "Default exchanges initialized"}
+        else:
+            return {"message": "Exchanges already exist"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/entries", response_model=PnLEntry)
 async def create_pnl_entry(entry_data: PnLEntryCreate):
     try:
