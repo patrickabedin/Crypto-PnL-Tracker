@@ -627,23 +627,29 @@ async def recalculate_subsequent_entries(from_date: date):
         ).sort("date", 1).to_list(1000)
         
         for i, entry in enumerate(entries):
+            # Calculate current total from balances
+            current_total = sum(balance["amount"] for balance in entry["balances"])
+            
             # Get previous entry for PnL calculation
             if i == 0:
                 previous_entry = await db.pnl_entries.find_one(
                     {"date": {"$lt": entry["date"]}}, 
                     sort=[("date", -1)]
                 )
-                previous_total = previous_entry["total"] if previous_entry else entry["total"]
+                previous_total = previous_entry["total"] if previous_entry else current_total
             else:
                 previous_total = entries[i-1]["total"]
             
             # Calculate new PnL metrics
-            pnl_metrics = calculate_pnl_metrics(entry["total"], previous_total)
+            pnl_metrics = calculate_pnl_metrics(current_total, previous_total)
             
             # Update entry
             await db.pnl_entries.update_one(
                 {"id": entry["id"]},
-                {"$set": pnl_metrics}
+                {"$set": {
+                    "total": round(current_total, 2),
+                    **pnl_metrics
+                }}
             )
             
     except Exception as e:
