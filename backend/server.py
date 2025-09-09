@@ -18,7 +18,6 @@ import aiohttp
 import json
 from google.oauth2 import id_token
 from google.auth.transport import requests
-import krakenex
 import asyncio
 import base64
 import hmac
