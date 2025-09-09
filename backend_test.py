@@ -23,6 +23,8 @@ class CryptoPnLTester:
         self.test_entries = []
         self.failed_tests = []
         self.passed_tests = []
+        self.session_token = None
+        self.user_id = TEST_USER_ID
         
     def log_result(self, test_name, success, message=""):
         """Log test results"""
