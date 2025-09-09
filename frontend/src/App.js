@@ -776,6 +776,13 @@ const CryptoPnLTracker = () => {
                 <button onClick={() => { setShowAddForm(true); setShowMobileMenu(false); }} className="w-full btn-primary text-sm py-3">
                   Add Entry
                 </button>
+                <button 
+                  onClick={() => { handleSyncExchanges(); setShowMobileMenu(false); }}
+                  disabled={syncingExchanges}
+                  className={`w-full btn-secondary text-sm py-3 ${syncingExchanges ? 'opacity-50' : ''}`}
+                >
+                  {syncingExchanges ? 'Syncing...' : '🔄 Sync Exchanges'}
+                </button>
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={() => { setShowMonthlyView(!showMonthlyView); setShowMobileMenu(false); }} className="btn-secondary text-xs py-2">
                     Monthly
