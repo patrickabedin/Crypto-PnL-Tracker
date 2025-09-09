@@ -505,24 +505,33 @@ async def export_entries_csv():
     """Export all entries to CSV format"""
     try:
         entries = await db.pnl_entries.find().sort("date", -1).to_list(1000)
+        exchanges = await db.exchanges.find({"is_active": True}).to_list(100)
+        
+        # Create exchange lookup
+        exchange_lookup = {ex["id"]: ex for ex in exchanges}
         
         # Create CSV content
         output = io.StringIO()
         writer = csv.writer(output)
         
-        # Write header
-        writer.writerow([
-            'Date', 'Kraken', 'Bitget', 'Binance', 'Total', 
-            'PnL %', 'PnL €', 'KPI 5K', 'KPI 10K', 'KPI 15K', 'Notes'
-        ])
+        # Create dynamic header
+        header = ['Date']
+        exchange_names = [ex["display_name"] for ex in exchanges]
+        header.extend(exchange_names)
+        header.extend(['Total', 'PnL %', 'PnL €', 'KPI 5K', 'KPI 10K', 'KPI 15K', 'Notes'])
+        writer.writerow(header)
         
         # Write data
         for entry in entries:
-            writer.writerow([
-                entry['date'],
-                f"{entry['balances']['kraken']:.2f}",
-                f"{entry['balances']['bitget']:.2f}",
-                f"{entry['balances']['binance']:.2f}",
+            row = [entry['date']]
+            
+            # Add exchange balances in order
+            for exchange in exchanges:
+                balance = next((b["amount"] for b in entry["balances"] if b["exchange_id"] == exchange["id"]), 0)
+                row.append(f"{balance:.2f}")
+            
+            # Add other fields
+            row.extend([
                 f"{entry['total']:.2f}",
                 f"{entry['pnl_percentage']:.2f}%",
                 f"{entry['pnl_amount']:.2f}",
@@ -531,6 +540,8 @@ async def export_entries_csv():
                 f"{entry['kpi_15k']:.2f}",
                 entry.get('notes', '')
             ])
+            
+            writer.writerow(row)
         
         output.seek(0)
         
