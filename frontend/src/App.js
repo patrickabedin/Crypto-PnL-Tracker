@@ -922,6 +922,49 @@ const CryptoPnLTracker = () => {
           </div>
         </div>
 
+        {/* ROI Performance Cards */}
+        {(stats.total_capital_deposited > 0 || stats.total_starting_balance > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {stats.total_capital_deposited > 0 && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                <h3 className="text-xs font-medium text-blue-700 uppercase tracking-wide mb-1">Capital Deposited</h3>
+                <p className="text-lg md:text-xl font-bold text-blue-900">{formatCurrency(stats.total_capital_deposited)}</p>
+              </div>
+            )}
+            
+            {stats.total_starting_balance > 0 && (
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4">
+                <h3 className="text-xs font-medium text-purple-700 uppercase tracking-wide mb-1">Starting Balance</h3>
+                <p className="text-lg md:text-xl font-bold text-purple-900">{formatCurrency(stats.total_starting_balance)}</p>
+              </div>
+            )}
+            
+            {stats.total_capital_deposited > 0 && (
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
+                <h3 className="text-xs font-medium text-emerald-700 uppercase tracking-wide mb-1">ROI vs Capital</h3>
+                <p className={`text-lg md:text-xl font-bold ${stats.roi_vs_capital > 0 ? 'text-emerald-600' : stats.roi_vs_capital < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                  {stats.roi_vs_capital > 0 ? '+' : ''}{(stats.roi_vs_capital || 0).toFixed(2)}%
+                </p>
+                <p className="text-xs text-emerald-600">
+                  {formatCurrency((stats.total_balance || 0) - (stats.total_capital_deposited || 0))} profit
+                </p>
+              </div>
+            )}
+            
+            {stats.total_starting_balance > 0 && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
+                <h3 className="text-xs font-medium text-amber-700 uppercase tracking-wide mb-1">ROI vs Start</h3>
+                <p className={`text-lg md:text-xl font-bold ${stats.roi_vs_starting_balance > 0 ? 'text-amber-600' : stats.roi_vs_starting_balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                  {stats.roi_vs_starting_balance > 0 ? '+' : ''}{(stats.roi_vs_starting_balance || 0).toFixed(2)}%
+                </p>
+                <p className="text-xs text-amber-600">
+                  {formatCurrency((stats.total_balance || 0) - (stats.total_starting_balance || 0))} gain
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Monthly Performance View */}
         {showMonthlyView && monthlyPerformance.monthly_performance && (
           <div className="mb-6">
