@@ -165,6 +165,33 @@ backend:
           agent: "testing"
           comment: "✅ KPI progress tracking working correctly. Tested with various portfolio values. Formula verified: KPI_Xk = current_total - X000. Examples: €4101.50 portfolio shows 5K: -€898.50, 10K: -€5898.50, 15K: -€10898.50. Updates automatically when balances change. Negative values indicate distance below target, positive values show surplus above target."
 
+  - task: "Real-time Kraken API Integration"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Implemented Kraken API client with balance fetching, auto-entry creation, and user-specific API key storage. Added endpoints: /exchanges/kraken/balance, /exchanges/sync, /entries/auto-create"
+        - working: false
+          agent: "main"
+          comment: "ISSUES IDENTIFIED: 1) Balance showing €0 despite user having funds 2) Auto-created entries not appearing in Recent Entries section. Database shows entry exists with €57,699.48 balance but frontend not displaying. Fixed duplicate exchanges issue. Updated Kraken API keys with user's credentials."
+
+  - task: "Exchange API Key Management CRUD"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Implemented complete CRUD API for exchange API key management: GET /api/exchange-api-keys (list user keys), POST /api/exchange-api-keys (create), PUT /api/exchange-api-keys/{id} (update), DELETE /api/exchange-api-keys/{id} (delete). Includes secure storage with user isolation."
+
 frontend:
   - task: "Daily Entry Form"
     implemented: true
