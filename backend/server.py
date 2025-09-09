@@ -964,7 +964,7 @@ async def sync_exchanges(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Error syncing exchanges: {str(e)}")
 
 @api_router.post("/entries/auto-create")
-async def auto_create_entry_from_sync(current_user: dict = Depends(get_current_user)):
+async def auto_create_entry_from_sync(current_user: User = Depends(require_auth)):
     """Create entry from real-time exchange sync data"""
     try:
         user_id = current_user["id"]
