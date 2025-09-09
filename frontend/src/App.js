@@ -1600,82 +1600,88 @@ const CryptoPnLTracker = () => {
                     Set starting balances for each exchange to track performance from your initial investment.
                   </p>
                 </div>
+
+                {/* Current Starting Balances - Show First */}
+                <div className="mb-6">
+                  <h4 className="text-md font-medium text-gray-800 mb-3">Current Starting Balances</h4>
+                  <div className="space-y-3">
+                    {startingBalances.map((balance) => {
+                      const exchange = exchanges.find(ex => ex.id === balance.exchange_id);
+                      return (
+                        <div key={balance.id} className="p-4 border border-gray-200 rounded-xl flex items-center justify-between bg-gray-50">
+                          <div>
+                            <p className="font-medium text-gray-900">{exchange?.display_name || 'Unknown Exchange'}</p>
+                            <p className="text-sm text-gray-500">
+                              Starting: {formatCurrency(balance.starting_balance)} on {new Date(balance.starting_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteStartingBalance(balance.exchange_id)}
+                            className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      );
+                    })}
+                    
+                    {startingBalances.length === 0 && (
+                      <div className="text-center py-6 bg-gray-50 rounded-xl">
+                        <p className="text-gray-500">No starting balances set yet.</p>
+                        <p className="text-sm text-gray-400 mt-1">Add starting balances below to enable ROI tracking!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 
                 {/* Add Starting Balance Form */}
-                <form onSubmit={handleAddStartingBalance} className="mb-4 p-4 border border-gray-200 rounded-xl">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Exchange</label>
-                      <select
-                        value={newStartingBalance.exchange_id}
-                        onChange={(e) => setNewStartingBalance(prev => ({ ...prev, exchange_id: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      >
-                        <option value="">Select Exchange</option>
-                        {exchanges.map((exchange) => (
-                          <option key={exchange.id} value={exchange.id}>
-                            {exchange.display_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Starting Balance (€)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newStartingBalance.starting_balance}
-                        onChange={(e) => setNewStartingBalance(prev => ({ ...prev, starting_balance: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="0.00"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Starting Date</label>
-                      <input
-                        type="date"
-                        value={newStartingBalance.starting_date}
-                        onChange={(e) => setNewStartingBalance(prev => ({ ...prev, starting_date: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <button type="submit" className="mt-4 btn-primary w-full md:w-auto">
-                    Set Starting Balance
-                  </button>
-                </form>
-
-                {/* Current Starting Balances */}
-                <div className="space-y-3">
-                  {startingBalances.map((balance) => {
-                    const exchange = exchanges.find(ex => ex.id === balance.exchange_id);
-                    return (
-                      <div key={balance.id} className="p-4 border border-gray-200 rounded-xl flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">{exchange?.display_name || 'Unknown Exchange'}</p>
-                          <p className="text-sm text-gray-500">
-                            Starting: {formatCurrency(balance.starting_balance)} on {new Date(balance.starting_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteStartingBalance(balance.exchange_id)}
-                          className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded"
+                <div className="border-t pt-6">
+                  <h4 className="text-md font-medium text-gray-800 mb-3">Add New Starting Balance</h4>
+                  <form onSubmit={handleAddStartingBalance} className="p-4 border border-gray-200 rounded-xl">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Exchange</label>
+                        <select
+                          value={newStartingBalance.exchange_id}
+                          onChange={(e) => setNewStartingBalance(prev => ({ ...prev, exchange_id: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
                         >
-                          Delete
-                        </button>
+                          <option value="">Select Exchange</option>
+                          {exchanges.map((exchange) => (
+                            <option key={exchange.id} value={exchange.id}>
+                              {exchange.display_name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    );
-                  })}
-                  
-                  {startingBalances.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No starting balances set yet.</p>
-                      <p className="text-sm text-gray-400 mt-1">Add starting balances above to enable ROI tracking!</p>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Starting Balance (€)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newStartingBalance.starting_balance}
+                          onChange={(e) => setNewStartingBalance(prev => ({ ...prev, starting_balance: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="0.00"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Starting Date</label>
+                        <input
+                          type="date"
+                          value={newStartingBalance.starting_date}
+                          onChange={(e) => setNewStartingBalance(prev => ({ ...prev, starting_date: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
                     </div>
-                  )}
+                    <button type="submit" className="mt-4 btn-primary w-full md:w-auto">
+                      Set Starting Balance
+                    </button>
+                  </form>
                 </div>
               </div>
 
@@ -1687,74 +1693,80 @@ const CryptoPnLTracker = () => {
                     Track all capital deposits to calculate true ROI against your invested capital.
                   </p>
                 </div>
+
+                {/* Current Capital Deposits - Show First */}
+                <div className="mb-6">
+                  <h4 className="text-md font-medium text-gray-800 mb-3">Current Capital Deposits</h4>
+                  <div className="space-y-3">
+                    {capitalDeposits.map((deposit) => (
+                      <div key={deposit.id} className="p-4 border border-gray-200 rounded-xl flex items-center justify-between bg-gray-50">
+                        <div>
+                          <p className="font-medium text-gray-900">{formatCurrency(deposit.amount)}</p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(deposit.deposit_date).toLocaleDateString()}
+                            {deposit.notes && ` • ${deposit.notes}`}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteCapitalDeposit(deposit.id)}
+                          className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded border border-red-200 hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                    
+                    {capitalDeposits.length === 0 && (
+                      <div className="text-center py-6 bg-gray-50 rounded-xl">
+                        <p className="text-gray-500">No capital deposits recorded yet.</p>
+                        <p className="text-sm text-gray-400 mt-1">Add deposits below to track ROI vs invested capital!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 
                 {/* Add Capital Deposit Form */}
-                <form onSubmit={handleAddCapitalDeposit} className="mb-4 p-4 border border-gray-200 rounded-xl">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Amount (€)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newCapitalDeposit.amount}
-                        onChange={(e) => setNewCapitalDeposit(prev => ({ ...prev, amount: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="0.00"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Deposit Date</label>
-                      <input
-                        type="date"
-                        value={newCapitalDeposit.deposit_date}
-                        onChange={(e) => setNewCapitalDeposit(prev => ({ ...prev, deposit_date: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
-                      <input
-                        type="text"
-                        value={newCapitalDeposit.notes}
-                        onChange={(e) => setNewCapitalDeposit(prev => ({ ...prev, notes: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Bank transfer, etc."
-                      />
-                    </div>
-                  </div>
-                  <button type="submit" className="mt-4 btn-primary w-full md:w-auto">
-                    Add Capital Deposit
-                  </button>
-                </form>
-
-                {/* Current Capital Deposits */}
-                <div className="space-y-3">
-                  {capitalDeposits.map((deposit) => (
-                    <div key={deposit.id} className="p-4 border border-gray-200 rounded-xl flex items-center justify-between">
+                <div className="border-t pt-6">
+                  <h4 className="text-md font-medium text-gray-800 mb-3">Add New Capital Deposit</h4>
+                  <form onSubmit={handleAddCapitalDeposit} className="p-4 border border-gray-200 rounded-xl">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <p className="font-medium text-gray-900">{formatCurrency(deposit.amount)}</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(deposit.deposit_date).toLocaleDateString()}
-                          {deposit.notes && ` • ${deposit.notes}`}
-                        </p>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Amount (€)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newCapitalDeposit.amount}
+                          onChange={(e) => setNewCapitalDeposit(prev => ({ ...prev, amount: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="0.00"
+                          required
+                        />
                       </div>
-                      <button
-                        onClick={() => handleDeleteCapitalDeposit(deposit.id)}
-                        className="text-red-600 hover:text-red-800 text-sm px-3 py-1 rounded"
-                      >
-                        Delete
-                      </button>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Deposit Date</label>
+                        <input
+                          type="date"
+                          value={newCapitalDeposit.deposit_date}
+                          onChange={(e) => setNewCapitalDeposit(prev => ({ ...prev, deposit_date: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                        <input
+                          type="text"
+                          value={newCapitalDeposit.notes}
+                          onChange={(e) => setNewCapitalDeposit(prev => ({ ...prev, notes: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Bank transfer, etc."
+                        />
+                      </div>
                     </div>
-                  ))}
-                  
-                  {capitalDeposits.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No capital deposits recorded yet.</p>
-                      <p className="text-sm text-gray-400 mt-1">Add deposits above to track ROI vs invested capital!</p>
-                    </div>
-                  )}
+                    <button type="submit" className="mt-4 btn-primary w-full md:w-auto">
+                      Add Capital Deposit
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
