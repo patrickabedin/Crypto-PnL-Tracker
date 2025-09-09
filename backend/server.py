@@ -810,13 +810,14 @@ async def get_chart_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-async def recalculate_subsequent_entries(from_date: date):
-    """Recalculate PnL for entries from the given date onwards"""
+async def recalculate_subsequent_entries(from_date: date, user_id: str):
+    """Recalculate PnL for entries from the given date onwards for a specific user"""
     try:
-        # Get all entries from the date onwards
-        entries = await db.pnl_entries.find(
-            {"date": {"$gte": from_date.isoformat()}}
-        ).sort("date", 1).to_list(1000)
+        # Get all entries from the date onwards for this user
+        entries = await db.pnl_entries.find({
+            "user_id": user_id,
+            "date": {"$gte": from_date.isoformat()}
+        }).sort("date", 1).to_list(1000)
         
         for i, entry in enumerate(entries):
             # Calculate current total from balances
@@ -824,10 +825,10 @@ async def recalculate_subsequent_entries(from_date: date):
             
             # Get previous entry for PnL calculation
             if i == 0:
-                previous_entry = await db.pnl_entries.find_one(
-                    {"date": {"$lt": entry["date"]}}, 
-                    sort=[("date", -1)]
-                )
+                previous_entry = await db.pnl_entries.find_one({
+                    "user_id": user_id,
+                    "date": {"$lt": entry["date"]}
+                }, sort=[("date", -1)])
                 previous_total = previous_entry["total"] if previous_entry else current_total
             else:
                 previous_total = entries[i-1]["total"]
@@ -837,7 +838,7 @@ async def recalculate_subsequent_entries(from_date: date):
             
             # Update entry
             await db.pnl_entries.update_one(
-                {"id": entry["id"]},
+                {"id": entry["id"], "user_id": user_id},
                 {"$set": {
                     "total": round(current_total, 2),
                     **pnl_metrics
