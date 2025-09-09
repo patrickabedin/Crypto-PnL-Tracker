@@ -1,30 +1,29 @@
 <analysis>
-The previous AI engineer successfully transformed a simple crypto PnL tracker concept into a feature-rich, professional-grade application. Initial work involved building core PnL tracking with a React frontend, FastAPI backend, and MongoDB, replicating Excel functionality. Subsequent iterations added interactive charts, data export, dynamic exchange management, and sophisticated monthly/yearly performance analytics. A major enhancement was the integration of secure Google OAuth authentication and a mobile-first responsive design, followed by dynamic KPI management. The application was then fully whitelabeled. The most recent focus has been on real-time Kraken API integration, addressing complex Pydantic serialization issues in the backend, and implementing user-specific API key storage. The current challenge is debugging the incorrect balance display and data not rendering after successful auto-entry creation.
+The trajectory details the evolution of a crypto PnL tracker from a basic concept to a comprehensive, manual-only application. Initially, the AI engineer built the core features, including PnL tracking, KPI management, charts, and Google OAuth. A major challenge involved integrating the Kraken API, which led to debugging MongoDB serialization, duplicate exchange issues, and severe Kraken API rate limiting. After multiple attempts to fix the API integration, the user decided to remove all sync/API functionality, opting for a robust manual-entry system. Post-API removal, the focus shifted to enhancing the UI and analytics: implementing ROI benchmarking (starting balances, total capital), debugging Settings modal data display/edit functionality, adding alternating row colors to Recent Entries, correcting ROI profit/loss messaging, and finally, implementing dark mode, a performance heatmap, and smart alerts. The last interaction before this summary involves a request to color-code Recent Entries rows based on profit/loss.
 </analysis>
 
 <product_requirements>
-The user initially requested a crypto daily PnL performance tracker to input wins/losses from exchanges and calculate profit/loss in absolute and percentage terms. This evolved into a comprehensive application, replicating Excel functionality including daily balance tracking for multiple exchanges (Kraken, Bitget, Binance), automatic PnL calculations, KPI progress tracking (5K, 10K, 15K goals), color-coded performance, notes, and historical data view.
-
-Further enhancements requested and implemented include:
-- An Avg Daily PnL % card on the dashboard.
-- Interactive charts (portfolio timeline, exchange breakdown, daily PnL performance).
-- CSV export functionality.
-- An Avg Monthly PnL % card and monthly/yearly performance tracking (best/worst months).
-- Dynamic exchange management (add/remove exchanges).
-- Google OAuth authentication and a mobile-first responsive design.
+The user sought a crypto daily PnL performance tracker for inputting wins/losses, calculating profit/loss (absolute/percentage), and tracking daily balances across exchanges (Kraken, Bitget, Binance). Initial features included KPI goals (5K, 10K, 15K), color-coded performance, notes, and historical data.
+Subsequent requests led to:
+- Avg Daily PnL % and Avg Monthly PnL % cards.
+- Interactive charts (portfolio timeline, exchange breakdown, daily PnL).
+- CSV export.
+- Dynamic exchange management.
+- Google OAuth and mobile-first design.
 - Dynamic KPI management (add/edit/delete custom goals).
-- Whitelabeling (removal of all Emergent branding).
-- Real-time API integration for Kraken, with secure API key storage and auto-entry creation.
+- Whitelabeling (removed Emergent branding).
+- Real-time Kraken API integration with secure API key storage and auto-entry (later removed due to issues).
+- Setting starting balance for each exchange and total capital deposits for ROI benchmarking.
+- UI improvements: alternating row colors for recent entries, correct profit/loss messaging for ROI, dark mode, a performance heatmap calendar, and smart alerts (goal proximity, achievements).
 </product_requirements>
 
 <key_technical_concepts>
 - **Full-stack Architecture**: React (frontend), FastAPI (backend), MongoDB (database).
-- **Styling**: Tailwind CSS, custom CSS adhering to strict design guidelines.
-- **Frontend Libraries**: Chart.js for data visualization,  for direct Google OAuth.
-- **Backend Libraries**: , ,  for Kraken API, , , ,  for authentication.
-- **Data Handling**: Pydantic models, MongoDB ObjectId serialization, UUIDs for IDs.
-- **Authentication**: Google OAuth, secure cookie-based sessions, user data isolation.
-- **Environment Management**:  files for , , .
+- **Styling**: Tailwind CSS, custom CSS, dark mode implementation.
+- **Frontend Libraries**: Chart.js, .
+- **Backend Libraries**: , , , , (previously , ,  for Kraken API, later removed).
+- **Data Handling**: Pydantic models, MongoDB ObjectId to UUID/JSON serialization, .
+- **Authentication**: Google OAuth, secure cookie-based sessions, user data isolation, CORS configuration.
 </key_technical_concepts>
 
 <code_architecture>
@@ -33,85 +32,75 @@ Further enhancements requested and implemented include:
 -   **/app/backend/server.py**:
     -   **Importance**: Main FastAPI application handling all backend logic, API endpoints, database interactions, and integrations.
     -   **Changes Made**:
-        -   Initial setup for PnL entry CRUD, KPI tracking, and basic stats.
-        -   Added endpoints for charts and CSV export.
-        -   Implemented dynamic exchange management () with CRUD operations.
-        -   Added endpoints for monthly/yearly performance analytics.
-        -   Integrated Google OAuth authentication, including user registration, login, logout, and token verification.
-        -   Protected existing endpoints with authentication dependencies and user data filtering.
-        -   Implemented dynamic KPI management () with CRUD operations.
-        -   Integrated Kraken API client, including endpoints for real-time balance fetching (), general exchange sync (), and auto-entry creation ().
-        -   Added API key management endpoints () for users to store their exchange credentials securely.
-        -   Multiple fixes for MongoDB ObjectId serialization errors, especially in auto-entry creation and data retrieval.
-        -   Adjusted balance calculation logic with conservative prices and minimum balance filters.
-        -   Removed Emergent branding references from comments.
+        -   Initial PnL entry CRUD, KPI tracking, and stats.
+        -   Endpoints for charts, CSV export, dynamic exchange management, monthly/yearly analytics.
+        -   Google OAuth authentication (user registration, login, logout, token verification).
+        -   Dynamic KPI management.
+        -   *Removed*: Kraken API client, real-time balance fetching, general exchange sync, auto-entry creation, API key management endpoints ().
+        -   Fixed MongoDB ObjectId serialization for entries and statistics.
+        -   **Added**: Endpoints for managing  and  (CRUD operations).
+        -   Updated  endpoint to include ROI calculations against starting balance and total capital.
+        -   Fixed authentication flow issues and added  field to Google OAuth response.
+        -   Adjusted CORS settings ().
 
 -   **/app/backend/.env**:
     -   **Importance**: Stores backend environment variables like  and .
-    -   **Changes Made**: Updated with the actual  and  for direct Google OAuth.
+    -   **Changes Made**: Updated  and . *Removed*: Kraken API keys.
 
 -   **/app/frontend/src/App.js**:
     -   **Importance**: Main React component, rendering the entire application UI and handling frontend logic, state management, and API calls.
     -   **Changes Made**:
-        -   Initial UI for PnL tracking, entries, and KPI progress.
-        -   Added UI for Avg Daily PnL % card, interactive charts (using Chart.js), and CSV export button.
-        -   Implemented dynamic exchange management UI (modal for adding/removing exchanges).
-        -   Added Avg Monthly PnL % card and UI for monthly/yearly performance view.
-        -   Integrated Google OAuth login screen, session management, and logout functionality.
-        -   Implemented mobile-first responsive design, including mobile menu, floating add button, and touch optimizations.
-        -   Added dynamic KPI management UI (modal for adding/editing/deleting KPIs, updating progress bars).
-        -   Implemented real-time sync button for Kraken, status indicator, and prompt for auto-entry creation.
-        -   Removed Emergent branding from UI elements and text.
-        -   Numerous state management and UI updates to adapt to dynamic data and authentication.
-        -   Fixes for ESLint errors and undefined functions.
+        -   Initial UI for PnL tracking, entries, KPI, charts, and CSV export.
+        -   Dynamic exchange management UI, Google OAuth login, mobile-first design, dynamic KPI management.
+        -   *Removed*: Real-time sync button for Kraken, auto-entry creation prompt, API Key management UI and related state/functions.
+        -   **Added**: State, functions, and UI for Settings modal to manage starting balances and capital deposits.
+        -   **Added**: ROI cards to dashboard displaying Total Capital Deposited and Total Starting Balance with dates, and ROI percentages.
+        -   Implemented dark mode state, toggle, and dynamic styling across all components (header, cards, KPI, Recent Entries, modals, heatmap).
+        -   **Added**: Performance heatmap calendar component with interactive tooltips.
+        -   **Added**: Smart alerts panel for goal proximity, achievements, win streaks, etc.
+        -   Improved  for manual entries, added dedicated Manual Entry button.
+        -   Fixed data loading for Settings modal, ensuring existing balances/deposits display with edit/delete options.
+        -   Corrected ROI messaging to display profit/gain or loss based on value, with appropriate colors.
+        -   Added alternating row colors () to Recent Entries.
+        -   Updated  and OAuth initialization.
 
 -   **/app/frontend/src/App.css**:
     -   **Importance**: Contains global and component-specific styles, primarily using Tailwind CSS and custom design guidelines.
-    -   **Changes Made**: Incorporated custom design guidelines for colors, gradients, buttons, cards, typography, and responsive layouts.
+    -   **Changes Made**: Incorporated custom design guidelines, and added custom classes (e.g., ) and dark mode specific styles for the heatmap.
 
 -   **/app/frontend/public/index.html**:
-    -   **Importance**: The main HTML file for the React application, serving as the entry point and including meta tags and external scripts.
-    -   **Changes Made**:
-        -   Removed Made with Emergent badge.
-        -   Updated page title to Crypto PnL Tracker and meta description.
-        -   Integrated Google JavaScript API for direct Google OAuth.
+    -   **Importance**: Main HTML file.
+    -   **Changes Made**: Updated page title, removed Emergent branding, and integrated Google JavaScript API.
 
 -   **/app/frontend/.env**:
     -   **Importance**: Stores frontend environment variables like  and .
-    -   **Changes Made**: Updated with the actual  for direct Google OAuth.
+    -   **Changes Made**: Updated  and ensured  matches the deployed preview URL.
 
 -   **/app/frontend/package.json**:
     -   **Importance**: Manages frontend dependencies and scripts.
-    -   **Changes Made**: Added , , and updated package name from frontend to crypto-pnl-tracker and version to 1.0.0.
+    -   **Changes Made**: Added , . Updated package name.
 
 -   **/app/backend/requirements.txt**:
     -   **Importance**: Manages backend Python dependencies.
-    -   **Changes Made**: Added , , , , , , .
+    -   **Changes Made**: Added , , , . *Removed*: , , .
 
 -   **/app/README.md**:
     -   **Importance**: Project documentation.
-    -   **Changes Made**: Updated to reflect the whitelabeled Crypto PnL Tracker application.
+    -   **Changes Made**: Updated to reflect Crypto PnL Tracker.
 
 -   **/app/GOOGLE_OAUTH_SETUP.md**:
-    -   **Importance**: Provides instructions for setting up Google OAuth Client ID in Google Cloud Console.
-    -   **Changes Made**: Created to guide the user through the Google OAuth setup process.
+    -   **Importance**: Instructions for Google OAuth Client ID setup.
+    -   **Changes Made**: Created to guide user through Google OAuth setup.
 </code_architecture>
 
 <pending_tasks>
-- Add the frontend interface for User API Key Management, allowing users to add, view, update, and remove their exchange API keys.
-- Debug the issue where the synced balance is displayed as €0 and recent entries are not appearing in the frontend despite auto-entry creation working.
+- Apply profit (green) and loss (red) color-coding to entire rows in the Recent Entries tab, for both dark and light modes.
 </pending_tasks>
 
 <current_work>
-Currently, the application has successfully integrated real-time Kraken API functionality. Users can click a Sync button to pull live balance data from Kraken, and the Create Entry from Sync function is now working without the previous MongoDB serialization errors. The backend includes secure storage for user-specific API keys and endpoints for managing them.
-
-However, there are two critical issues:
-1.  **Balance Display Issue**: The application is showing a total balance of €0, even when the user has funds on Kraken. This indicates a problem with how the fetched Kraken balance is being processed, converted, or displayed in the frontend.
-2.  **Entries Not Displaying**: While the auto-entry creation is confirming that an entry for today already exists, these newly created entries (and potentially older ones) are not visible in the Recent Entries section of the dashboard. This suggests an issue with data retrieval or rendering on the frontend after a successful entry creation.
-
-The immediate next step is to investigate these two display/retrieval issues to ensure the synced data is correctly presented to the user.
+Immediately prior to this summary, the AI engineer was working on comprehensively integrating dark mode across the application. All major UI components, including the header, stats cards, ROI cards, smart alerts panel, KPI progress section, Recent Entries section, Performance Heatmap, and all modals/forms, have been updated with dark mode styling, ensuring proper contrast and smooth transitions. The charts were the last major component to receive dark mode styling, including container backgrounds, legend colors, grid lines, and axis labels for the Portfolio Timeline, Exchange Breakdown, and Daily PnL Performance charts. The current specific task is to enhance the Recent Entries section further by color-coding entire rows based on whether the entry represents a profit (green) or a loss (red), in both dark and light themes, to improve visual clarity.
 </current_work>
 
 <optional_next_step>
-Check the database and frontend data retrieval logic to fix the €0 balance display and ensure entries appear correctly.
+I will implement color-coding for Recent Entries rows based on profit/loss.
 </optional_next_step>

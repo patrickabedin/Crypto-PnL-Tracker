@@ -16,10 +16,10 @@ To enable direct Google authentication and eliminate the two-step login process,
 4. Set the following:
    - **Name**: Crypto PnL Tracker
    - **Authorized JavaScript origins**: 
-     - `https://crypto-profit-dash-1.preview.emergentagent.com`
+     - `https://pnldashboard.preview.emergentagent.com`
      - `http://localhost:3000` (for development)
    - **Authorized redirect URIs**: 
-     - `https://crypto-profit-dash-1.preview.emergentagent.com`
+     - `https://pnldashboard.preview.emergentagent.com`
      - `http://localhost:3000` (for development)
 
 ### 3. Update Environment Variables

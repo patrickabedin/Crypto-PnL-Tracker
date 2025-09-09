@@ -12,7 +12,7 @@ import sys
 import uuid
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://crypto-profit-dash-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://pnldashboard.preview.emergentagent.com/api"
 
 # Test user credentials from review request
 TEST_USER_ID = "6888e839-1191-4880-ac8d-1fab8c19ea4c"

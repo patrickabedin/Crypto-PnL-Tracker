@@ -7,7 +7,7 @@ import requests
 import json
 from datetime import date
 
-BACKEND_URL = "https://crypto-profit-dash-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://pnldashboard.preview.emergentagent.com/api"
 
 def test_recalculation():
     print("🧮 Testing Automatic PnL Recalculation")
