@@ -963,7 +963,7 @@ async def sync_exchanges(current_user: dict = Depends(get_current_user)):
         logger.error(f"Error syncing exchanges: {e}")
         raise HTTPException(status_code=500, detail=f"Error syncing exchanges: {str(e)}")
 
-@app.post("/api/entries/auto-create")
+@api_router.post("/entries/auto-create")
 async def auto_create_entry_from_sync(current_user: dict = Depends(get_current_user)):
     """Create entry from real-time exchange sync data"""
     try:
