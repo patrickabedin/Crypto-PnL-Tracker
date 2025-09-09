@@ -382,18 +382,44 @@ const CryptoPnLTracker = () => {
     }
 
     try {
-      await axios.post(`${API}/starting-balances`, {
-        ...newStartingBalance,
-        starting_balance: parseFloat(newStartingBalance.starting_balance)
-      });
+      if (editingStartingBalance) {
+        // Update existing starting balance
+        await axios.post(`${API}/starting-balances`, {
+          ...newStartingBalance,
+          starting_balance: parseFloat(newStartingBalance.starting_balance)
+        });
+        setEditingStartingBalance(null);
+        alert('Starting balance updated successfully!');
+      } else {
+        // Create new starting balance
+        await axios.post(`${API}/starting-balances`, {
+          ...newStartingBalance,
+          starting_balance: parseFloat(newStartingBalance.starting_balance)
+        });
+        alert('Starting balance set successfully!');
+      }
+      
       await loadStartingBalances();
       await fetchData(); // Refresh stats to update ROI cards
       setNewStartingBalance({ exchange_id: '', starting_balance: '', starting_date: '' });
-      alert('Starting balance set successfully!');
     } catch (error) {
-      console.error('Error adding starting balance:', error);
-      alert('Error setting starting balance: ' + (error.response?.data?.detail || error.message));
+      console.error('Error with starting balance:', error);
+      alert('Error with starting balance: ' + (error.response?.data?.detail || error.message));
     }
+  };
+
+  const startEditingStartingBalance = (balance) => {
+    setEditingStartingBalance(balance);
+    setNewStartingBalance({
+      exchange_id: balance.exchange_id,
+      starting_balance: balance.starting_balance.toString(),
+      starting_date: balance.starting_date
+    });
+  };
+
+  const cancelEditingStartingBalance = () => {
+    setEditingStartingBalance(null);
+    setNewStartingBalance({ exchange_id: '', starting_balance: '', starting_date: '' });
   };
 
   const handleDeleteStartingBalance = async (exchangeId) => {
