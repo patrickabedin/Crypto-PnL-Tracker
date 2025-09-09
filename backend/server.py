@@ -861,7 +861,7 @@ async def auto_create_entry_from_sync(
         # Get real-time data from each exchange
         for exchange in exchanges:
             if exchange["name"] == "kraken":
-                balance_data = await kraken_api.get_account_balance()
+                balance_data = await kraken_api.get_account_balance(user_id=current_user.id)
                 if balance_data['success']:
                     balances.append({
                         'exchange_id': exchange['id'],
