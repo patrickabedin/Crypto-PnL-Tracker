@@ -805,7 +805,7 @@ async def sync_exchange_balances(current_user: User = Depends(require_auth), bac
         # Sync each exchange
         for exchange in exchanges:
             if exchange["name"] == "kraken":
-                balance_data = await kraken_api.get_account_balance()
+                balance_data = await kraken_api.get_account_balance(user_id=current_user.id)
                 if balance_data['success']:
                     sync_results['kraken'] = {
                         'success': True,
